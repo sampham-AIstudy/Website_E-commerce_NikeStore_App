@@ -1,0 +1,132 @@
+<%- include('partials/header', { title: 'Nike Store - Danh Sách Yêu Thích Của Tôi' }) %>
+
+  <!-- ========================================== -->
+  <!-- PAGE HEADER                                -->
+  <!-- ========================================== -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+    <h1
+      class="text-3xl font-extrabold uppercase tracking-tight text-nike-black border-b border-gray-100 pb-5 flex items-center gap-2">
+      <svg class="w-8 h-8 text-red-500 fill-red-500 badge-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+        </path>
+      </svg>
+      Sản Phẩm Bạn Yêu Thích
+    </h1>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- WISHLIST CONTENT AREA                      -->
+  <!-- ========================================== -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-[50vh]">
+
+    <!-- Empty State -->
+    <div id="wishPageEmptyState"
+      class="bg-white rounded-3xl p-16 text-center shadow-sm border border-gray-100 space-y-6 hidden">
+      <img src="/assets/design/broken_heart.png" alt="Empty Wishlist"
+        class="w-28 h-auto mx-auto opacity-75 transform hover:scale-105 transition-transform duration-300"
+        onerror="this.style.display='none'">
+      <div class="space-y-2">
+        <h3 class="font-extrabold text-2xl text-gray-800">Danh sách yêu thích trống!</h3>
+        <p class="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed font-light">
+          Chưa có sản phẩm nào được lưu lại. Hãy lướt xem các đôi giày chạy bộ hoặc thời trang tuyệt đẹp của Nike và lưu
+          lại tại đây nhé!
+        </p>
+      </div>
+      <button onclick="window.location.href='/'"
+        class="bg-nike-black text-white hover:bg-nike-orange px-8 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all duration-300 shadow-md">Mua
+        Sắm Ngay</button>
+    </div>
+
+    <!-- Active Wishlist Grid -->
+    <div id="wishPageProductsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <!-- Filled dynamically by Client JavaScript -->
+    </div>
+
+  </div>
+
+  <!-- Page Interactivity Logic -->
+  <script>
+    // Helper to format price in JS
+    function formatPriceJs(number) {
+      let cleanVal = parseFloat(String(number).replace(/[^0-9.-]+/g, ""));
+      if (isNaN(cleanVal)) return number;
+      if (cleanVal < 100000) {
+        cleanVal = cleanVal * 1000;
+      }
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cleanVal);
+    }
+
+    function renderWishlistPage() {
+      const wishlist = getWishlist();
+      const emptyState = document.getElementById('wishPageEmptyState');
+      const grid = document.getElementById('wishPageProductsGrid');
+
+      if (wishlist.length === 0) {
+        emptyState.classList.remove('hidden');
+        grid.innerHTML = '';
+      } else {
+        emptyState.classList.add('hidden');
+        grid.innerHTML = '';
+
+        wishlist.forEach(product => {
+          let priceSection = `<span class="font-extrabold text-sm text-nike-black">${formatPriceJs(product.price)}</span>`;
+          if (product.discount_percent > 0) {
+            priceSection = `
+              <span class="text-xs text-gray-400 line-through">${formatPriceJs(product.price)}</span>
+              <span class="font-extrabold text-sm text-nike-orange">${formatPriceJs(product.price * (1 - product.discount_percent / 100))}</span>
+            `;
+          }
+
+          const productHtml = `
+            <div class="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100/60 hover:border-nike-orange/15 transition-all duration-300 flex flex-col relative">
+              
+              <!-- Badges -->
+              <div class="absolute top-4 left-4 z-20 flex flex-col gap-2">
+                ${product.is_new ? '<span class="bg-red-500 text-white font-extrabold text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">NEW</span>' : ''}
+                ${product.discount_percent > 0 ? `<span class="bg-nike-orange text-white font-extrabold text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">SALE -${product.discount_percent}%</span>` : ''}
+              </div>
+
+              <!-- Delete/Unlike button -->
+              <button onclick="toggleWishlist(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(product))}'))); renderWishlistPage();" class="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 border border-red-100 flex items-center justify-center shadow-sm transition-all duration-200 focus:outline-none">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+
+              <!-- Image -->
+              <div class="h-60 bg-gradient-to-b from-gray-50/50 to-white flex items-center justify-center overflow-hidden p-6 relative">
+                <a href="/products/${product.id}" class="w-full h-full flex items-center justify-center">
+                  <img src="${product.image}" alt="${product.title}" class="max-w-[85%] max-h-full object-contain transform group-hover:scale-115 group-hover:rotate-[-6deg] transition-all duration-500 ease-out z-10" onerror="this.src='/nike.png'">
+                </a>
+              </div>
+
+              <!-- Content Card -->
+              <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                <div>
+                  <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">${product.category === 'men' ? 'Nam' : product.category === 'women' ? 'Nữ' : 'Trẻ Em'} &bull; ${product.item_type}</span>
+                  <a href="/products/${product.id}" class="block font-bold text-gray-800 text-sm hover:text-nike-orange transition-colors truncate mt-1">${product.title}</a>
+                </div>
+
+                <!-- Price & Checkout option -->
+                <div class="flex justify-between items-center pt-3 border-t border-gray-50">
+                  <div class="flex flex-col">
+                    ${priceSection}
+                  </div>
+                  
+                  <!-- Quick add to cart -->
+                  <button onclick="addToCart(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(product))}')), '39', 'Trắng', 1)" class="bg-nike-black hover:bg-nike-orange text-white p-2.5 rounded-full transition-all duration-300 hover:rotate-[360deg] shadow-md focus:outline-none glow-dark hover:glow-orange">
+                    <svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          grid.insertAdjacentHTML('beforeend', productHtml);
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', renderWishlistPage);
+  </script>
+
+  <%- include('partials/footer') %>

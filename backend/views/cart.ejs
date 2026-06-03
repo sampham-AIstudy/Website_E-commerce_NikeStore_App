@@ -1,0 +1,370 @@
+<%- include('partials/header', { title: 'Nike Store - Giỏ Hàng & Thanh Toán' }) %>
+
+  <!-- ========================================== -->
+  <!-- PAGE HEADER                                -->
+  <!-- ========================================== -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+    <h1
+      class="text-3xl font-extrabold uppercase tracking-tight text-nike-black border-b border-gray-100 pb-5 flex items-center gap-2">
+      <svg class="w-8 h-8 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+      </svg>
+      Chi Tiết Đơn Hàng Của Bạn
+    </h1>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- CART CONTENT & CHECKOUT FORM               -->
+  <!-- ========================================== -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <!-- Empty Cart Page State -->
+    <div id="cartPageEmptyState"
+      class="bg-white rounded-3xl p-16 text-center shadow-sm border border-gray-100 space-y-6 hidden">
+      <img src="/assets/design/emptybag.png" alt="Empty Bag"
+        class="w-48 h-auto mx-auto opacity-75 transform hover:scale-105 transition-transform duration-300"
+        onerror="this.style.display='none'">
+      <div class="space-y-2">
+        <h3 class="font-extrabold text-2xl text-gray-800">Giỏ hàng của bạn đang trống!</h3>
+        <p class="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed font-light">
+          Chưa có sản phẩm nào được thêm vào giỏ hàng của bạn. Hãy khám phá hàng ngàn đôi giày Nike tuyệt vời khác ngay
+          nào!
+        </p>
+      </div>
+      <button onclick="window.location.href='/'"
+        class="bg-nike-black text-white hover:bg-nike-orange px-8 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all duration-300 shadow-md glow-dark hover:glow-orange">Mua
+        Sắm Ngay</button>
+    </div>
+
+    <!-- Active Cart State (Dual Column layout) -->
+    <div id="cartPageActiveState" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- Left: Cart Items List (8 Columns) -->
+      <div class="lg:col-span-7 space-y-6" id="cartPageItemsContainer">
+        <!-- Rendered dynamically by client JS -->
+      </div>
+
+      <!-- Right: Order Summary & Checkout Form (5 Columns) -->
+      <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+        <h3 class="font-extrabold text-lg text-nike-black uppercase tracking-wide border-b pb-4">Thông tin thanh toán
+        </h3>
+
+        <!-- Price breakdown -->
+        <div class="space-y-3.5 text-sm text-gray-500 pb-5 border-b border-gray-100">
+          <div class="flex justify-between">
+            <span class="font-medium">Tạm tính (chưa VAT)</span>
+            <span class="font-bold text-nike-black" id="summarySubtotal">0đ</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-medium">Phí vận chuyển</span>
+            <span class="text-green-600 font-bold">Miễn phí</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-medium">Thuế VAT (10%)</span>
+            <span class="font-bold text-nike-black" id="summaryTax">0đ</span>
+          </div>
+          <div class="flex justify-between text-base font-extrabold text-nike-black pt-2">
+            <span class="uppercase tracking-wider">Tổng cộng:</span>
+            <span class="text-xl text-nike-orange font-extrabold" id="summaryGrandTotal">0đ</span>
+          </div>
+        </div>
+
+        <!-- Checkout Form -->
+        <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-4">
+          <!-- Full Name -->
+          <div class="space-y-1.5">
+            <label for="fullname" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Họ và Tên người
+              nhận *</label>
+            <input type="text" id="fullname" required placeholder="Nguyễn Văn A"
+              class="w-full bg-gray-50 border-0 rounded-2xl py-3 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+          </div>
+
+          <!-- Phone Number -->
+          <div class="space-y-1.5">
+            <label for="phone" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Số Điện Thoại
+              *</label>
+            <input type="tel" id="phone" required placeholder="0987654321"
+              class="w-full bg-gray-50 border-0 rounded-2xl py-3 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+          </div>
+
+          <!-- Delivery Address -->
+          <div class="space-y-1.5">
+            <label for="address" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Địa chỉ nhận
+              hàng *</label>
+            <textarea id="address" required rows="3" placeholder="Số 12, ngõ 34, đường ABC, Hà Nội"
+              class="w-full bg-gray-50 border-0 rounded-2xl py-3 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all"></textarea>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="space-y-2">
+            <label class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Phương thức thanh toán</label>
+            <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-3">
+              <input type="radio" checked id="cod" name="payment" class="accent-nike-orange w-4 h-4">
+              <label for="cod" class="text-xs font-bold text-gray-700">Thanh toán khi nhận hàng (COD)</label>
+            </div>
+          </div>
+
+          <!-- Submit Order -->
+          <button type="submit" id="submitOrderBtn"
+            class="w-full bg-nike-black hover:bg-nike-orange text-white text-center font-extrabold py-4 px-6 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 glow-dark hover:glow-orange focus:outline-none mt-4">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Hoàn tất đặt hàng
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- ORDER SUCCESS DIALOG MODAL                 -->
+  <!-- ========================================== -->
+  <div id="orderSuccessModal"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center hidden p-4 transition-opacity duration-300">
+    <div
+      class="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl border border-gray-100 space-y-6 transform scale-95 transition-transform duration-300">
+
+      <!-- Lottie or Pulse Check Circle -->
+      <div
+        class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-500 mx-auto badge-pulse">
+        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+
+      <div class="space-y-2">
+        <h3 class="font-extrabold text-2xl text-nike-black uppercase tracking-tight">Đặt Hàng Thành Công!</h3>
+        <p class="text-xs text-gray-500 leading-relaxed font-light">
+          Cảm ơn bạn đã lựa chọn mua sắm tại Nike Store. Đơn hàng của bạn đã được ghi nhận trên hệ thống cơ sở dữ liệu.
+          Nhân viên hỗ trợ sẽ liên hệ xác nhận trong thời gian sớm nhất.
+        </p>
+      </div>
+
+      <!-- Receipt summary box -->
+      <div
+        class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left text-xs space-y-2 text-gray-600 font-light">
+        <div class="flex justify-between"><span class="font-semibold text-gray-800">Mã Đơn Hàng:</span> <span
+            id="receiptOrderId" class="font-bold text-nike-orange">#12345</span></div>
+        <div class="flex justify-between"><span class="font-semibold text-gray-800">Người Nhận:</span> <span
+            id="receiptName" class="font-bold text-nike-black">Nguyễn Văn A</span></div>
+        <div class="flex justify-between"><span class="font-semibold text-gray-800">Số Điện Thoại:</span> <span
+            id="receiptPhone" class="font-semibold text-nike-black">0987654321</span></div>
+        <div class="flex justify-between"><span class="font-semibold text-gray-800">Tổng Thanh Toán:</span> <span
+            id="receiptTotal" class="font-extrabold text-nike-orange">0đ</span></div>
+      </div>
+
+      <button onclick="window.location.href='/'"
+        class="w-full bg-nike-black hover:bg-nike-orange text-white text-center font-extrabold py-3.5 px-6 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md">Trở
+        về Trang Chủ</button>
+    </div>
+  </div>
+
+  <!-- Page Checkout logic -->
+  <script>
+    function renderCartPage() {
+      const cart = getCart();
+      const emptyState = document.getElementById('cartPageEmptyState');
+      const activeState = document.getElementById('cartPageActiveState');
+      const container = document.getElementById('cartPageItemsContainer');
+
+      if (cart.length === 0) {
+        emptyState.classList.remove('hidden');
+        activeState.classList.add('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        activeState.classList.remove('hidden');
+
+        // Clear container first
+        container.innerHTML = '';
+
+        // Render Select All Bar
+        const allChecked = cart.every(item => item.checked);
+        const selectedCount = cart.filter(item => item.checked).length;
+        
+        const selectAllBarHtml = `
+          <div class="flex items-center justify-between p-4 bg-white rounded-3xl border border-gray-100 shadow-sm mb-4">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="selectAllCheckbox" ${allChecked ? 'checked' : ''} onchange="toggleSelectAll(this.checked)" class="accent-nike-orange w-5 h-5 rounded border-gray-300 text-nike-orange focus:ring-nike-orange/50 transition-all cursor-pointer">
+              <label for="selectAllCheckbox" class="text-sm font-bold text-gray-800 cursor-pointer">Chọn tất cả (${selectedCount}/${cart.length})</label>
+            </div>
+            <button onclick="deleteSelected()" class="text-xs text-gray-400 hover:text-red-500 font-bold transition-colors focus:outline-none">Xóa mục đã chọn</button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', selectAllBarHtml);
+
+        let subtotal = 0;
+
+        cart.forEach(item => {
+          const itemTotal = item.price * item.cartQuantity;
+          if (item.checked) {
+            subtotal += itemTotal;
+          }
+
+          const itemHtml = `
+            <div class="flex flex-col sm:flex-row gap-6 p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-nike-orange/15 transition-all duration-300">
+              <!-- Delete -->
+              <button onclick="removeFromCart(${item.id}, '${item.size}', '${item.color}'); renderCartPage();" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors p-1.5 focus:outline-none">
+                <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+
+              <!-- Checkbox selection -->
+              <div class="flex items-center justify-center sm:pr-2 flex-shrink-0">
+                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItemSelect(${item.id}, '${item.size}', '${item.color}', this.checked)" class="accent-nike-orange w-5 h-5 rounded border-gray-300 text-nike-orange focus:ring-nike-orange/50 transition-all cursor-pointer">
+              </div>
+
+              <!-- Image -->
+              <div class="w-28 h-28 bg-gradient-to-b from-gray-50/50 to-white rounded-2xl flex items-center justify-center border border-gray-100 overflow-hidden p-2 flex-shrink-0">
+                <img src="${item.image}" alt="${item.title}" class="w-full h-auto object-contain transform hover:scale-105 transition-transform duration-300" onerror="this.src='/nike.png'">
+              </div>
+
+              <!-- Details -->
+              <div class="flex-1 flex flex-col justify-between space-y-4">
+                <div class="space-y-1">
+                  <span class="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full inline-block">${item.category === 'men' ? 'Giày Nam' : item.category === 'women' ? 'Giày Nữ' : 'Giày Trẻ Em'}</span>
+                  <h4 class="font-bold text-base text-nike-black">${item.title}</h4>
+                  <div class="flex gap-4 text-xs text-gray-500 mt-1">
+                    <span>Kích cỡ: <strong class="text-nike-black font-semibold">${item.size}</strong></span>
+                    <span>Màu sắc: <strong class="text-nike-black font-semibold">${item.color}</strong></span>
+                  </div>
+                </div>
+
+                <div class="flex justify-between items-center border-t border-gray-50 pt-3">
+                  <!-- Qty adjustment -->
+                  <div class="flex items-center border border-gray-200 rounded-full bg-white px-3 py-1 shadow-sm">
+                    <button onclick="updateQuantity(${item.id}, '${item.size}', '${item.color}', ${item.cartQuantity - 1}); renderCartPage();" class="text-gray-500 hover:text-nike-black font-bold text-base px-2 focus:outline-none">-</button>
+                    <span class="text-xs font-bold px-3 w-8 text-center">${item.cartQuantity}</span>
+                    <button onclick="updateQuantity(${item.id}, '${item.size}', '${item.color}', ${item.cartQuantity + 1}); renderCartPage();" class="text-gray-500 hover:text-nike-black font-bold text-base px-2 focus:outline-none">+</button>
+                  </div>
+                  <!-- Subtotal -->
+                  <div class="text-right">
+                    <span class="text-[10px] text-gray-400 block font-medium">Thành tiền</span>
+                    <span class="font-extrabold text-base text-nike-orange">${formatPrice(itemTotal)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', itemHtml);
+        });
+
+        // 2. Calculations
+        let tax = subtotal * 0.10;
+        let grandTotal = subtotal + tax;
+
+        document.getElementById('summarySubtotal').textContent = formatPrice(subtotal);
+        document.getElementById('summaryTax').textContent = formatPrice(tax);
+        document.getElementById('summaryGrandTotal').textContent = formatPrice(grandTotal);
+
+        // 3. Enable/Disable Checkout Button
+        const submitBtn = document.getElementById('submitOrderBtn');
+        if (selectedCount === 0) {
+          submitBtn.disabled = true;
+          submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          submitBtn.classList.remove('hover:bg-nike-orange', 'glow-dark', 'hover:glow-orange');
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          submitBtn.classList.add('hover:bg-nike-orange', 'glow-dark', 'hover:glow-orange');
+        }
+      }
+    }
+
+    async function handleCheckout(event) {
+      event.preventDefault();
+
+      const cart = getCart();
+      const selectedItems = cart.filter(item => item.checked);
+      if (selectedItems.length === 0) return alert('Vui lòng tích chọn sản phẩm muốn thanh toán!');
+
+      const fullname = document.getElementById('fullname').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
+
+      const userStr = localStorage.getItem('nike_user');
+      let user_id = null;
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          user_id = user.id;
+        } catch (e) { }
+      }
+
+      // Format Grand Total (selected items only)
+      let subtotal = selectedItems.reduce((acc, item) => acc + (item.price * item.cartQuantity), 0);
+      let grandTotal = subtotal * 1.10; // Tax 10%
+
+      const payload = {
+        user_id: user_id,
+        fullname: fullname,
+        phone: phone,
+        address: address,
+        total_amount: grandTotal,
+        cartItems: selectedItems
+      };
+
+      const submitBtn = document.getElementById('submitOrderBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang đặt hàng...';
+
+      try {
+        const response = await fetch('/api/orders/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          // Remove only selected items from shopping cart
+          const remainingCart = cart.filter(item => !item.checked);
+          saveCart(remainingCart);
+
+          // Populate Receipt modal
+          document.getElementById('receiptOrderId').textContent = '#' + result.order_id;
+          document.getElementById('receiptName').textContent = fullname;
+          document.getElementById('receiptPhone').textContent = phone;
+          document.getElementById('receiptTotal').textContent = formatPrice(grandTotal);
+
+          // Open Success Modal
+          const modal = document.getElementById('orderSuccessModal');
+          modal.classList.remove('hidden');
+          setTimeout(() => {
+            modal.querySelector('div').classList.remove('scale-95');
+          }, 50);
+
+        } else {
+          alert('Đặt hàng thất bại: ' + result.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Hoàn tất đặt hàng';
+        }
+      } catch (err) {
+        alert('Lỗi kết nối máy chủ: ' + err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Hoàn tất đặt hàng';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderCartPage();
+
+      // Prepopulate form if user is logged in
+      const userStr = localStorage.getItem('nike_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          document.getElementById('fullname').value = user.username === 'admin' ? 'Nike Administrator' : user.username;
+        } catch (e) { }
+      }
+    });
+  </script>
+
+  <%- include('partials/footer') %>

@@ -1,0 +1,687 @@
+<%- include('partials/header', { title: 'Nike Store - Đăng Nhập & Đăng Ký' }) %>
+
+  <!-- ========================================== -->
+  <!-- LOGIN/REGISTER PORTAL CONTAINER           -->
+  <!-- ========================================== -->
+  <div
+    class="min-h-[75vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-gradient-to-tr from-gray-50 via-zinc-100/50 to-neutral-200/40">
+
+    <!-- Background dynamic glow -->
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-nike-orange/10 rounded-full blur-[120px] pointer-events-none z-0">
+    </div>
+    <div
+      class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[120px] pointer-events-none z-0">
+    </div>
+
+    <!-- Main Card (Glassmorphism design) -->
+    <div
+      class="max-w-md w-full bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white shadow-xl relative z-10 space-y-6">
+
+      <!-- Logo and Header -->
+      <div class="text-center space-y-2">
+        <a href="/" class="inline-block">
+          <img src="/assets/logo.png" alt="Nike Logo"
+            class="h-10 w-auto mx-auto transform transition-transform hover:scale-105" onerror="this.src='/nike.png'">
+        </a>
+        <h2 class="text-xl sm:text-2xl font-black uppercase tracking-tight text-nike-black" id="portalTitle">Chào mừng
+          trở lại</h2>
+        <p class="text-xs text-gray-400 font-light" id="portalSub">Hãy đăng nhập để tiếp tục khám phá thế giới Nike.</p>
+      </div>
+
+      <!-- Tab Buttons -->
+      <div id="authTabs" class="flex bg-gray-100/60 p-1.5 rounded-full border border-gray-100/50">
+        <button onclick="switchTab('login')" id="loginTabBtn"
+          class="flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 bg-white text-nike-black shadow-sm focus:outline-none">Đăng
+          nhập</button>
+        <button onclick="switchTab('register')" id="registerTabBtn"
+          class="flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 text-gray-500 hover:text-nike-black focus:outline-none">Đăng
+          ký</button>
+      </div>
+
+      <!-- Error/Success Message Banner -->
+      <div id="authMessageBanner" class="p-3.5 rounded-2xl text-xs font-bold hidden flex items-center gap-2"></div>
+
+      <!-- FORM -->
+      <form id="authForm" onsubmit="handleSubmit(event)" class="space-y-4">
+
+        <!-- Username input -->
+        <div class="space-y-1.5" id="usernameFieldContainer">
+          <label for="username" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Tên đăng nhập *</label>
+          <div class="relative">
+            <input type="text" id="username" placeholder="user1" required
+              class="w-full bg-gray-50 border-0 rounded-2xl py-3.5 pl-4 pr-10 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+            <svg class="w-4 h-4 text-gray-400 absolute right-3.5 top-3.5" fill="none" stroke="currentColor"
+              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Email input -->
+        <div class="space-y-1.5 hidden" id="emailFieldContainer">
+          <label for="email" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Địa chỉ Email *</label>
+          <input type="email" id="email" placeholder="example@gmail.com"
+            class="w-full bg-gray-50 border-0 rounded-2xl py-3.5 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+        </div>
+
+        <!-- Password input -->
+        <div class="space-y-1.5" id="passwordFieldContainer">
+          <label for="password" id="passwordLabel" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Mật khẩu *</label>
+          <div class="relative">
+            <input type="password" id="password" required placeholder="••••••••"
+              class="w-full bg-gray-50 border-0 rounded-2xl py-3.5 pl-4 pr-10 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+            <svg class="w-4 h-4 text-gray-400 absolute right-3.5 top-3.5" fill="none" stroke="currentColor"
+              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+              </path>
+            </svg>
+          </div>
+          <div class="text-right">
+            <a href="#" id="forgotPasswordLink" onclick="event.preventDefault(); switchTab('forgot');" class="text-[10px] font-bold text-nike-orange hover:underline transition-all">Quên mật khẩu?</a>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitAuthBtn"
+          class="w-full bg-nike-black hover:bg-nike-orange text-white text-center font-extrabold py-4 px-6 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 hover:glow-orange focus:outline-none pt-4">
+          <span>Đăng nhập ngay</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </button>
+
+      </form>
+
+      <!-- OTP Verification Form (Multi-step flow) -->
+      <form id="otpVerificationForm" onsubmit="handleOtpVerification(event)" class="space-y-6 hidden">
+        <div class="text-center space-y-2">
+          <h3 class="text-lg font-black uppercase tracking-tight text-nike-black">Nhập mã xác thực</h3>
+          <p class="text-xs text-gray-400 font-light">Chúng tôi đã gửi mã OTP 6 chữ số đến email: <br><strong class="text-nike-black" id="otpTargetEmail">email@example.com</strong></p>
+        </div>
+        
+        <div class="space-y-1.5">
+          <label for="verificationCode" class="text-xs text-gray-500 font-bold uppercase tracking-wider block text-center">Mã OTP (6 chữ số) *</label>
+          <input type="text" id="verificationCode" placeholder="••••••" maxlength="6"
+            class="w-full bg-gray-50 border-0 rounded-2xl py-3.5 text-center text-lg font-black tracking-[8px] text-nike-orange focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+        </div>
+
+        <button type="submit" id="submitVerificationBtn"
+          class="w-full bg-nike-black hover:bg-nike-orange text-white text-center font-extrabold py-4 px-6 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 hover:glow-orange focus:outline-none">
+          <span>Xác minh & Hoàn tất</span>
+        </button>
+
+        <div class="text-center space-y-2.5">
+          <button type="button" id="resendOtpBtn" onclick="resendVerificationOtp()" class="text-xs font-bold text-nike-orange hover:underline focus:outline-none">Gửi lại mã OTP</button>
+          <a href="#" onclick="event.preventDefault(); cancelVerification();" class="block text-xs font-bold text-gray-400 hover:text-nike-black transition-colors">&larr; Quay lại chỉnh sửa thông tin</a>
+        </div>
+      </form>
+
+      <!-- New Password Form (Multi-step forgot password flow) -->
+      <form id="newPasswordForm" onsubmit="handleNewPasswordSubmit(event)" class="space-y-6 hidden">
+        <div class="text-center space-y-2">
+          <h3 class="text-lg font-black uppercase tracking-tight text-nike-black">Đặt lại mật khẩu mới</h3>
+          <p class="text-xs text-gray-400 font-light">Vui lòng nhập mật khẩu mới cho tài khoản: <br><strong class="text-nike-black" id="newPasswordTargetEmail">email@example.com</strong></p>
+        </div>
+        
+        <div class="space-y-1.5">
+          <label for="newPasswordInput" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Mật khẩu mới *</label>
+          <div class="relative">
+            <input type="password" id="newPasswordInput" required placeholder="••••••••"
+              class="w-full bg-gray-50 border-0 rounded-2xl py-3.5 pl-4 pr-10 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
+            <svg class="w-4 h-4 text-gray-400 absolute right-3.5 top-3.5" fill="none" stroke="currentColor"
+              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+              </path>
+            </svg>
+          </div>
+        </div>
+
+        <button type="submit" id="submitNewPasswordBtn"
+          class="w-full bg-nike-black hover:bg-nike-orange text-white text-center font-extrabold py-4 px-6 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 hover:glow-orange focus:outline-none">
+          <span>Xác nhận đổi mật khẩu</span>
+        </button>
+
+        <div class="text-center">
+          <a href="#" onclick="event.preventDefault(); cancelNewPasswordFlow();" class="block text-xs font-bold text-gray-400 hover:text-nike-black transition-colors">&larr; Hủy và quay lại Đăng nhập</a>
+        </div>
+      </form>
+
+      <!-- Secondary Auth Container (Social & Guest shortcuts) -->
+      <div id="secondaryAuthContainer" class="space-y-6">
+        <!-- ─── Divider ─── -->
+        <div id="socialDivider" class="flex items-center gap-3">
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <span class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Hoặc</span>
+          <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+
+        <!-- ─── Google Sign-In Button ─── -->
+        <div id="googleBtnContainer" class="flex justify-center">
+          <div id="g_id_onload" data-client_id="441555015475-h436smhea65okptdjh4vjrnst82kncgn.apps.googleusercontent.com"
+            data-callback="handleGoogleCredential" data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with"
+            data-shape="pill" data-logo_alignment="left" data-width="368">
+          </div>
+        </div>
+
+        <!-- Guest mode shortcut -->
+        <div class="text-center pt-1 flex flex-col gap-2">
+          <a href="/" class="text-xs font-bold text-gray-400 hover:text-nike-orange transition-colors">&larr; Tiếp tục với tư cách Khách mua sắm</a>
+          <!-- Back to login link (shown in forgot tab) -->
+          <a href="#" id="backToLoginBtn" onclick="event.preventDefault(); switchTab('login');" class="text-xs font-bold text-nike-black hover:text-nike-orange transition-colors hidden">&larr; Quay lại Đăng nhập</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    let activeTab = 'login';
+    let otpCountdown = 0;
+    let otpTimer = null;
+    let tempUserData = {};
+
+    // ─── Google Sign-In callback ────────────────────────────────────────────
+    async function handleGoogleCredential(response) {
+      showBanner('Đang xác minh tài khoản Google...', 'info');
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential })
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+          showBanner('Đăng nhập Google thành công! Đang chuyển hướng...', 'success');
+          localStorage.setItem('nike_user', JSON.stringify(result.user));
+          setTimeout(() => { window.location.href = result.user.role === 'admin' ? '/admin' : '/'; }, 1000);
+        } else {
+          showBanner(result.message || 'Lỗi đăng nhập Google.', 'error');
+        }
+      } catch (e) {
+        showBanner('Không thể kết nối máy chủ backend.', 'error');
+      }
+    }
+
+    function showBanner(message, type = 'error') {
+      const banner = document.getElementById('authMessageBanner');
+      banner.textContent = message;
+      banner.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'bg-green-50', 'text-green-600', 'bg-blue-50', 'text-blue-600');
+      if (type === 'error') banner.classList.add('bg-red-50', 'text-red-600');
+      else if (type === 'success') banner.classList.add('bg-green-50', 'text-green-600');
+      else banner.classList.add('bg-blue-50', 'text-blue-600');
+      banner.classList.remove('hidden');
+    }
+
+    function hideBanner() { document.getElementById('authMessageBanner').classList.add('hidden'); }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      hideBanner();
+      
+      const loginTabBtn = document.getElementById('loginTabBtn');
+      const registerTabBtn = document.getElementById('registerTabBtn');
+      const title = document.getElementById('portalTitle');
+      const sub = document.getElementById('portalSub');
+      const submitBtnText = document.getElementById('submitAuthBtn').querySelector('span');
+      
+      const usernameContainer = document.getElementById('usernameFieldContainer');
+      const emailContainer = document.getElementById('emailFieldContainer');
+      const passwordContainer = document.getElementById('passwordFieldContainer');
+      const passwordLabel = document.getElementById('passwordLabel');
+      const forgotLink = document.getElementById('forgotPasswordLink');
+      const backToLoginBtn = document.getElementById('backToLoginBtn');
+      const socialDivider = document.getElementById('socialDivider');
+      const googleBtnContainer = document.getElementById('googleBtnContainer');
+
+      // Clear fields
+      document.getElementById('password').value = '';
+      document.getElementById('username').value = '';
+      document.getElementById('email').value = '';
+      
+      if (otpTimer) {
+        clearInterval(otpTimer);
+        otpTimer = null;
+        otpCountdown = 0;
+      }
+
+      if (tab === 'login') {
+        loginTabBtn.className = 'flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 bg-white text-nike-black shadow-sm focus:outline-none';
+        registerTabBtn.className = 'flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 text-gray-500 hover:text-nike-black focus:outline-none';
+        title.textContent = 'Chào mừng trở lại';
+        sub.textContent = 'Hãy đăng nhập để tiếp tục khám phá thế giới Nike.';
+        submitBtnText.textContent = 'Đăng nhập ngay';
+
+        usernameContainer.classList.remove('hidden');
+        emailContainer.classList.add('hidden');
+        passwordContainer.classList.remove('hidden');
+        passwordLabel.textContent = 'Mật khẩu *';
+        forgotLink.classList.remove('hidden');
+        backToLoginBtn.classList.add('hidden');
+        socialDivider.classList.remove('hidden');
+        googleBtnContainer.classList.remove('hidden');
+
+        document.getElementById('username').setAttribute('required', 'true');
+        document.getElementById('email').removeAttribute('required');
+        document.getElementById('password').setAttribute('required', 'true');
+      } else if (tab === 'register') {
+        registerTabBtn.className = 'flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 bg-white text-nike-black shadow-sm focus:outline-none';
+        loginTabBtn.className = 'flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 text-gray-500 hover:text-nike-black focus:outline-none';
+        title.textContent = 'Tạo tài khoản mới';
+        sub.textContent = 'Nhập thông tin bên dưới để đăng ký thành viên Nike Store.';
+        submitBtnText.textContent = 'Đăng ký thành viên';
+
+        usernameContainer.classList.remove('hidden');
+        emailContainer.classList.remove('hidden');
+        passwordContainer.classList.remove('hidden');
+        passwordLabel.textContent = 'Mật khẩu *';
+        forgotLink.classList.add('hidden');
+        backToLoginBtn.classList.add('hidden');
+        socialDivider.classList.remove('hidden');
+        googleBtnContainer.classList.remove('hidden');
+
+        document.getElementById('username').setAttribute('required', 'true');
+        document.getElementById('email').setAttribute('required', 'true');
+        document.getElementById('password').setAttribute('required', 'true');
+      } else if (tab === 'forgot') {
+        loginTabBtn.className = 'flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 text-gray-500 hover:text-nike-black focus:outline-none';
+        registerTabBtn.className = 'flex-1 text-center font-bold text-xs uppercase py-3 rounded-full transition-all duration-300 text-gray-500 hover:text-nike-black focus:outline-none';
+        title.textContent = 'Đặt lại mật khẩu';
+        sub.textContent = 'Nhập email của bạn để nhận mã OTP khôi phục mật khẩu.';
+        submitBtnText.textContent = 'Gửi mã xác thực';
+
+        usernameContainer.classList.add('hidden');
+        emailContainer.classList.remove('hidden');
+        passwordContainer.classList.add('hidden');
+        forgotLink.classList.add('hidden');
+        backToLoginBtn.classList.remove('hidden');
+        socialDivider.classList.add('hidden');
+        googleBtnContainer.classList.add('hidden');
+
+        document.getElementById('username').removeAttribute('required');
+        document.getElementById('email').setAttribute('required', 'true');
+        document.getElementById('password').removeAttribute('required');
+      }
+    }
+
+    function startOtpCountdown() {
+      if (otpTimer) clearInterval(otpTimer);
+      otpCountdown = 60;
+      const resendBtn = document.getElementById('resendOtpBtn');
+      resendBtn.disabled = true;
+      resendBtn.classList.add('text-gray-400');
+      resendBtn.classList.remove('text-nike-orange');
+      resendBtn.textContent = `Gửi lại mã OTP (${otpCountdown}s)`;
+      
+      otpTimer = setInterval(() => {
+        otpCountdown--;
+        if (otpCountdown <= 0) {
+          clearInterval(otpTimer);
+          resendBtn.disabled = false;
+          resendBtn.classList.remove('text-gray-400');
+          resendBtn.classList.add('text-nike-orange');
+          resendBtn.textContent = 'Gửi lại mã OTP';
+        } else {
+          resendBtn.textContent = `Gửi lại mã OTP (${otpCountdown}s)`;
+        }
+      }, 1000);
+    }
+
+    function cancelVerification() {
+      hideBanner();
+      if (otpTimer) {
+        clearInterval(otpTimer);
+        otpTimer = null;
+      }
+      
+      // Hide OTP Form
+      document.getElementById('otpVerificationForm').classList.add('hidden');
+      
+      // Show main UI
+      document.getElementById('authTabs').classList.remove('hidden');
+      document.getElementById('authForm').classList.remove('hidden');
+      document.getElementById('secondaryAuthContainer').classList.remove('hidden');
+      document.getElementById('portalTitle').classList.remove('hidden');
+      document.getElementById('portalSub').classList.remove('hidden');
+      
+      // Restore header content based on activeTab
+      const title = document.getElementById('portalTitle');
+      const sub = document.getElementById('portalSub');
+      if (activeTab === 'register') {
+        title.textContent = 'Tạo tài khoản mới';
+        sub.textContent = 'Nhập thông tin bên dưới để đăng ký thành viên Nike Store.';
+      } else if (activeTab === 'forgot') {
+        title.textContent = 'Đặt lại mật khẩu';
+        sub.textContent = 'Nhập email của bạn để nhận mã OTP khôi phục mật khẩu.';
+      }
+    }
+
+    function cancelNewPasswordFlow() {
+      hideBanner();
+      document.getElementById('newPasswordForm').classList.add('hidden');
+      
+      // Show main UI
+      document.getElementById('authTabs').classList.remove('hidden');
+      document.getElementById('authForm').classList.remove('hidden');
+      document.getElementById('secondaryAuthContainer').classList.remove('hidden');
+      document.getElementById('portalTitle').classList.remove('hidden');
+      document.getElementById('portalSub').classList.remove('hidden');
+      
+      switchTab('login');
+      tempUserData = {};
+    }
+
+    async function resendVerificationOtp() {
+      if (otpCountdown > 0) return;
+      
+      const email = tempUserData.email;
+      if (!email) return showBanner('Không tìm thấy thông tin email để gửi lại OTP.');
+      
+      showBanner('Đang gửi lại mã OTP...', 'info');
+      try {
+        const response = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, purpose: activeTab === 'register' ? 'register' : 'forgot' })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+          showBanner('Mã OTP mới đã được gửi thành công!', 'success');
+          startOtpCountdown();
+        } else {
+          showBanner(result.message || 'Lỗi gửi lại mã OTP.');
+        }
+      } catch (e) {
+        showBanner('Không thể kết nối máy chủ backend.');
+      }
+    }
+
+    async function handleOtpVerification(event) {
+      event.preventDefault();
+      hideBanner();
+      
+      const otp = document.getElementById('verificationCode').value.trim();
+      if (!otp || otp.length !== 6) {
+        showBanner('Mã OTP phải có 6 chữ số!');
+        return;
+      }
+      
+      const submitBtn = document.getElementById('submitVerificationBtn');
+      const submitBtnText = submitBtn.querySelector('span');
+      const originalText = submitBtnText.textContent;
+      submitBtn.disabled = true;
+      submitBtnText.textContent = 'Đang xác minh...';
+      
+      try {
+        if (activeTab === 'register') {
+          const { username, email, password } = tempUserData;
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password, otp })
+          });
+          const result = await response.json();
+          if (result.status === 'success') {
+            showBanner('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+            setTimeout(() => {
+              // Hide OTP view
+              document.getElementById('otpVerificationForm').classList.add('hidden');
+              // Restore main view
+              document.getElementById('authTabs').classList.remove('hidden');
+              document.getElementById('authForm').classList.remove('hidden');
+              document.getElementById('secondaryAuthContainer').classList.remove('hidden');
+              document.getElementById('portalTitle').classList.remove('hidden');
+              document.getElementById('portalSub').classList.remove('hidden');
+              
+              switchTab('login');
+              tempUserData = {};
+              if (otpTimer) {
+                clearInterval(otpTimer);
+                otpTimer = null;
+              }
+            }, 2000);
+          } else {
+            showBanner(result.message || 'Lỗi đăng ký tài khoản.');
+          }
+        } else if (activeTab === 'forgot') {
+          const email = tempUserData.email;
+          const response = await fetch('/api/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp, purpose: 'forgot' })
+          });
+          const result = await response.json();
+          if (result.status === 'success') {
+            showBanner('Xác thực OTP thành công!', 'success');
+            tempUserData.otp = otp;
+            
+            setTimeout(() => {
+              hideBanner();
+              // Hide OTP Form
+              document.getElementById('otpVerificationForm').classList.add('hidden');
+              // Show New Password Form
+              document.getElementById('newPasswordTargetEmail').textContent = email;
+              document.getElementById('newPasswordInput').value = '';
+              document.getElementById('newPasswordForm').classList.remove('hidden');
+              document.getElementById('newPasswordInput').focus();
+              
+              if (otpTimer) {
+                clearInterval(otpTimer);
+                otpTimer = null;
+              }
+            }, 1000);
+          } else {
+            showBanner(result.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
+          }
+        }
+      } catch (e) {
+        showBanner('Không thể kết nối máy chủ backend.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtnText.textContent = originalText;
+      }
+    }
+
+    async function handleNewPasswordSubmit(event) {
+      event.preventDefault();
+      hideBanner();
+      
+      const newPassword = document.getElementById('newPasswordInput').value.trim();
+      if (newPassword.length < 6) {
+        showBanner('Mật khẩu mới phải từ 6 ký tự trở lên!');
+        return;
+      }
+      
+      const submitBtn = document.getElementById('submitNewPasswordBtn');
+      const submitBtnText = submitBtn.querySelector('span');
+      const originalText = submitBtnText.textContent;
+      submitBtn.disabled = true;
+      submitBtnText.textContent = 'Đang đặt lại mật khẩu...';
+      
+      try {
+        const { email, otp } = tempUserData;
+        const response = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: newPassword, otp })
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          showBanner('Đổi mật khẩu thành công! Đang chuyển hướng...', 'success');
+          setTimeout(() => {
+            document.getElementById('newPasswordForm').classList.add('hidden');
+            
+            // Show main UI
+            document.getElementById('authTabs').classList.remove('hidden');
+            document.getElementById('authForm').classList.remove('hidden');
+            document.getElementById('secondaryAuthContainer').classList.remove('hidden');
+            document.getElementById('portalTitle').classList.remove('hidden');
+            document.getElementById('portalSub').classList.remove('hidden');
+            
+            switchTab('login');
+            tempUserData = {};
+          }, 2000);
+        } else {
+          showBanner(result.message || 'Lỗi đặt lại mật khẩu.');
+        }
+      } catch (e) {
+        showBanner('Không thể kết nối máy chủ backend.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtnText.textContent = originalText;
+      }
+    }
+
+    async function handleSubmit(event) {
+      event.preventDefault();
+      hideBanner();
+      
+      const submitBtn = document.getElementById('submitAuthBtn');
+      const submitBtnText = submitBtn.querySelector('span');
+      const originalBtnText = submitBtnText.textContent;
+      
+      if (activeTab === 'login') {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        submitBtn.disabled = true;
+        submitBtnText.textContent = 'Đang đăng nhập...';
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          const result = await response.json();
+          if (result.status === 'success') {
+            showBanner('Đăng nhập thành công! Đang chuyển hướng...', 'success');
+            localStorage.setItem('nike_user', JSON.stringify(result.user));
+            setTimeout(() => {
+              window.location.href = result.user.role === 'admin' ? '/admin' : '/';
+            }, 1000);
+          } else {
+            showBanner(result.message || 'Lỗi tài khoản hoặc mật khẩu.');
+            submitBtn.disabled = false;
+            submitBtnText.textContent = originalBtnText;
+          }
+        } catch (e) {
+          showBanner('Không thể kết nối máy chủ backend.');
+          submitBtn.disabled = false;
+          submitBtnText.textContent = originalBtnText;
+        }
+      } else if (activeTab === 'register') {
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        if (password.length < 6) {
+          showBanner('Mật khẩu phải từ 6 ký tự trở lên!');
+          return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showBanner('Email không hợp lệ!');
+          return;
+        }
+
+        tempUserData = { username, email, password };
+        
+        submitBtn.disabled = true;
+        submitBtnText.textContent = 'Đang gửi mã OTP...';
+
+        try {
+          const response = await fetch('/api/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, purpose: 'register' })
+          });
+          const result = await response.json();
+          
+          if (result.status === 'success') {
+            showBanner('Mã OTP đã được gửi về email của bạn!', 'success');
+            
+            document.getElementById('otpTargetEmail').textContent = email;
+            
+            document.getElementById('authTabs').classList.add('hidden');
+            document.getElementById('authForm').classList.add('hidden');
+            document.getElementById('secondaryAuthContainer').classList.add('hidden');
+            document.getElementById('portalTitle').classList.add('hidden');
+            document.getElementById('portalSub').classList.add('hidden');
+            
+            const otpForm = document.getElementById('otpVerificationForm');
+            otpForm.classList.remove('hidden');
+            document.getElementById('verificationCode').value = '';
+            document.getElementById('verificationCode').focus();
+            
+            startOtpCountdown();
+          } else {
+            showBanner(result.message || 'Lỗi gửi mã OTP.');
+          }
+        } catch (e) {
+          showBanner('Không thể kết nối máy chủ backend.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtnText.textContent = originalBtnText;
+        }
+      } else if (activeTab === 'forgot') {
+        const email = document.getElementById('email').value.trim();
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showBanner('Email không hợp lệ!');
+          return;
+        }
+
+        tempUserData = { email };
+        
+        submitBtn.disabled = true;
+        submitBtnText.textContent = 'Đang gửi mã OTP...';
+
+        try {
+          const response = await fetch('/api/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, purpose: 'forgot' })
+          });
+          const result = await response.json();
+          
+          if (result.status === 'success') {
+            showBanner('Mã OTP đã được gửi về email của bạn!', 'success');
+            
+            document.getElementById('otpTargetEmail').textContent = email;
+            
+            document.getElementById('authTabs').classList.add('hidden');
+            document.getElementById('authForm').classList.add('hidden');
+            document.getElementById('secondaryAuthContainer').classList.add('hidden');
+            document.getElementById('portalTitle').classList.add('hidden');
+            document.getElementById('portalSub').classList.add('hidden');
+            
+            const otpForm = document.getElementById('otpVerificationForm');
+            otpForm.classList.remove('hidden');
+            document.getElementById('verificationCode').value = '';
+            document.getElementById('verificationCode').focus();
+            
+            startOtpCountdown();
+          } else {
+            showBanner(result.message || 'Lỗi gửi mã OTP.');
+          }
+        } catch (e) {
+          showBanner('Không thể kết nối máy chủ backend.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtnText.textContent = originalBtnText;
+        }
+      }
+    }
+  </script>
+
+  <%- include('partials/footer') %>

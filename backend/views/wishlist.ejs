@@ -58,6 +58,16 @@
       return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cleanVal);
     }
 
+    function translateItemTypeJs(type) {
+      const map = {
+        'accessories': 'Phụ kiện', 'apparel': 'Quần áo', 'bags': 'Balo/Túi',
+        'cap': 'Mũ/Nón', 'equipment': 'Dụng cụ', 'hoodie': 'Áo Hoodie',
+        'jacket': 'Áo khoác', 'pants': 'Quần dài', 'shirt': 'Áo thun',
+        'shoes': 'Giày', 'shorts': 'Quần ngắn', 'socks': 'Tất/Vớ'
+      };
+      return map[(type || '').toLowerCase()] || type || '';
+    }
+
     function renderWishlistPage() {
       const wishlist = getWishlist();
       const emptyState = document.getElementById('wishPageEmptyState');
@@ -103,7 +113,7 @@
               <!-- Content Card -->
               <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
                 <div>
-                  <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">${product.category === 'men' ? 'Nam' : product.category === 'women' ? 'Nữ' : 'Trẻ Em'} &bull; ${product.item_type}</span>
+                  <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">${product.category === 'men' ? 'Nam' : product.category === 'women' ? 'Nữ' : 'Trẻ Em'} &bull; ${translateItemTypeJs(product.item_type)}</span>
                   <a href="/products/${product.id}" class="block font-bold text-gray-800 text-sm hover:text-nike-orange transition-colors truncate mt-1">${product.title}</a>
                 </div>
 

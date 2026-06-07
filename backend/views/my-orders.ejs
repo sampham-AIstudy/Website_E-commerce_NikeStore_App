@@ -420,8 +420,16 @@
 
           // Action buttons mapping
           let actionButtons = '';
+          const isVpbankPending = order.payment_method && order.payment_method.toLowerCase() === 'vpbank' && order.payment_status !== 'paid';
+
           if (order.status === 'pending' || order.status === 'processing') {
             actionButtons = `
+              ${isVpbankPending ? `
+              <a href="https://go.vpbank.com.vn/nAWi43Y" target="_blank" rel="noopener"
+                class="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all shadow-md focus:outline-none">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Chuyển khoản ngay
+              </a>` : ''}
               <button onclick="openConfirmModal(${order.id})" class="border border-red-200 hover:bg-red-50 text-red-500 font-bold px-5 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all focus:outline-none">
                 Hủy Đơn Hàng
               </button>
@@ -456,9 +464,19 @@
                     <span class="text-[10px] text-gray-400 font-medium">| ${orderDate}</span>
                   </div>
                 </div>
-                <span class="px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${statusClass}">
-                  ${statusText}
-                </span>
+                <div class="flex flex-col items-end gap-1">
+                  <span class="px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${statusClass}">
+                    ${statusText}
+                  </span>
+                  ${(order.payment_method && order.payment_method.toLowerCase() === 'vpbank') ? `
+                    ${order.payment_status === 'paid'
+                      ? '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">✅ Đã thanh toán</span>'
+                      : order.payment_status === 'failed'
+                        ? '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-red-100 text-red-700">❌ Thanh toán thất bại</span>'
+                        : '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">⏳ Chờ xác nhận TT</span>'
+                    }
+                  ` : ''}
+                </div>
               </div>
 
               <!-- Card Items -->

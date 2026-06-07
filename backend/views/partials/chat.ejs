@@ -1,0 +1,181 @@
+<!-- Chatbot Widget -->
+<div id="aiChatWidget" class="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+  <!-- Chat Window -->
+  <div id="aiChatWindow" class="hidden bg-white w-80 sm:w-96 rounded-2xl shadow-2xl border border-gray-100 overflow-hidden mb-4 transform transition-all duration-300 origin-bottom-right">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-nike-black to-gray-800 p-4 flex justify-between items-center text-white">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-white/20 rounded-full overflow-hidden flex items-center justify-center">
+          <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <h3 class="font-bold text-sm">Nike AI Assistant</h3>
+          <p class="text-[10px] text-gray-300">Luôn sẵn sàng hỗ trợ</p>
+        </div>
+      </div>
+      <button onclick="toggleChat()" class="text-gray-300 hover:text-white focus:outline-none">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Messages Area -->
+    <div id="aiChatMessages" class="h-80 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-3">
+      <!-- Welcome Message -->
+      <div class="flex gap-2">
+        <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 bg-white border border-gray-200">
+          <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+        </div>
+        <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100">
+          Chào bạn! Tôi là trợ lý AI của Nike Store. Tôi có thể giúp gì cho bạn hôm nay? (Tìm giày chạy bộ, quần áo, voucher...)
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+      <input type="text" id="aiChatInput" placeholder="Nhập câu hỏi của bạn..." class="flex-1 bg-gray-50 border-none rounded-full py-2 px-4 text-xs focus:outline-none focus:ring-1 focus:ring-nike-black" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+      <button onclick="sendChatMessage()" id="aiChatSendBtn" class="w-8 h-8 bg-nike-black text-white rounded-full flex items-center justify-center hover:bg-nike-orange transition-colors focus:outline-none">
+        <svg class="w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Button -->
+  <button onclick="toggleChat()" class="w-14 h-14 bg-nike-black text-white rounded-full flex items-center justify-center shadow-lg hover:bg-nike-orange transition-transform hover:scale-105 glow-dark focus:outline-none overflow-hidden border-2 border-transparent">
+    <img src="/assets/logochatbot.png" alt="Chat" class="w-full h-full object-cover rounded-full bg-white">
+  </button>
+</div>
+
+<script>
+  let isChatOpen = false;
+
+  function toggleChat() {
+    isChatOpen = !isChatOpen;
+    const windowEl = document.getElementById('aiChatWindow');
+    if (isChatOpen) {
+      windowEl.classList.remove('hidden');
+    } else {
+      windowEl.classList.add('hidden');
+    }
+  }
+
+  function appendMessage(text, isUser = false) {
+    const messagesEl = document.getElementById('aiChatMessages');
+    
+    // Xóa thẻ [PRODUCT_ID: xx] khỏi text hiển thị cho user
+    let displayText = text.replace(/\[PRODUCT_ID:\s*(\d+)\]/g, '').trim();
+
+    let html = '';
+    if (isUser) {
+      html = `
+        <div class="flex gap-2 justify-end">
+          <div class="bg-nike-black text-white p-3 rounded-2xl rounded-tr-sm shadow-sm text-xs max-w-[85%] break-words">
+            ${displayText}
+          </div>
+        </div>
+      `;
+    } else {
+      html = `
+        <div class="flex gap-2">
+          <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 bg-white border border-gray-200">
+            <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+          </div>
+          <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100 max-w-[85%] break-words">
+            ${displayText}
+          </div>
+        </div>
+      `;
+    }
+    
+    messagesEl.insertAdjacentHTML('beforeend', html);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function appendProductCard(product) {
+    const messagesEl = document.getElementById('aiChatMessages');
+    const priceFormatted = new Intl.NumberFormat('vi-VN').format(product.price) + 'đ';
+    const html = `
+      <div class="flex gap-2 ml-8">
+        <a href="/products/${product.id}" class="block bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow max-w-[200px] group cursor-pointer text-decoration-none">
+          <div class="h-32 bg-gray-50 flex items-center justify-center p-2 relative">
+            <img src="${product.image}" class="w-full h-full object-contain group-hover:scale-110 transition-transform" onerror="this.src='/nike.png'">
+            <div class="absolute bottom-2 right-2 bg-nike-orange text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Xem</div>
+          </div>
+          <div class="p-2 space-y-1">
+            <h4 class="text-[10px] font-bold text-gray-800 line-clamp-2 leading-tight">${product.title}</h4>
+            <div class="text-xs font-extrabold text-nike-orange">${priceFormatted}</div>
+          </div>
+        </a>
+      </div>
+    `;
+    messagesEl.insertAdjacentHTML('beforeend', html);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function appendTypingIndicator() {
+    const messagesEl = document.getElementById('aiChatMessages');
+    const html = `
+      <div class="flex gap-2" id="aiTypingIndicator">
+        <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 bg-white border border-gray-200">
+          <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover animate-pulse">
+        </div>
+        <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 flex items-center gap-1 h-10">
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+        </div>
+      </div>
+    `;
+    messagesEl.insertAdjacentHTML('beforeend', html);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    const ind = document.getElementById('aiTypingIndicator');
+    if (ind) ind.remove();
+  }
+
+  async function sendChatMessage() {
+    const inputEl = document.getElementById('aiChatInput');
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    // Hiển thị tin nhắn user
+    appendMessage(text, true);
+    inputEl.value = '';
+    
+    // Vô hiệu hóa input trong khi đợi
+    inputEl.disabled = true;
+    document.getElementById('aiChatSendBtn').disabled = true;
+    
+    appendTypingIndicator();
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await response.json();
+      
+      removeTypingIndicator();
+      
+      if (data.error) {
+        appendMessage("Xin lỗi, tôi đang gặp chút sự cố kết nối (" + data.error + ").", false);
+      } else {
+        appendMessage(data.reply, false);
+        // Hiển thị product cards nếu có
+        if (data.products && data.products.length > 0) {
+          data.products.forEach(p => appendProductCard(p));
+        }
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      appendMessage("Lỗi kết nối tới máy chủ.", false);
+    } finally {
+      inputEl.disabled = false;
+      document.getElementById('aiChatSendBtn').disabled = false;
+      inputEl.focus();
+    }
+  }
+</script>

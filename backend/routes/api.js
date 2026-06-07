@@ -177,7 +177,7 @@ router.post('/products', upload.single('imageFile'), function (req, res, next) {
     if (hasCol('rating'))           { cols.push('rating');           vals.push(body.rating || 4.5); }
     if (hasCol('color'))            { cols.push('color');            vals.push(body.color || 'Trắng'); }
     if (hasCol('sizes'))            { cols.push('sizes');            vals.push(body.sizes || '38,39,40,41,42'); }
-    if (hasCol('item_type'))        { cols.push('item_type');        vals.push(body.item_type || 'Chạy bộ'); }
+    if (hasCol('item_type'))        { cols.push('item_type');        vals.push(body.item_type || 'shoes'); }
     if (hasCol('is_new'))           { cols.push('is_new');           vals.push(body.is_new === '1' || body.is_new === 1 ? 1 : 0); }
     if (hasCol('discount_percent')) { cols.push('discount_percent'); vals.push(body.discount_percent || 0); }
     if (hasCol('description'))      { cols.push('description');      vals.push(body.description || ''); }
@@ -280,6 +280,210 @@ router.delete('/products/:id', function (req, res, next) {
     if (error) return res.status(500).json({ status: 'error', message: error.message });
     if (results.affectedRows === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy sản phẩm' });
     res.json({ status: 'success', message: 'Đã xóa sản phẩm thành công' });
+  });
+});
+
+// =============================================
+// POST /api/vouchers/apply  →  Kiểm tra mã giảm giá
+// =============================================
+router.post('/vouchers/apply', function (req, res) {
+  var code = req.body.code;
+  var userId = req.body.user_id;
+  var orderTotal = parseFloat(req.body.order_total) || 0;
+
+  if (!code || !userId) {
+    return res.status(400).json({ status: 'error', message: 'Thiếu mã voucher hoặc bạn chưa đăng nhập' });
+  }
+
+  // 1. Kiểm tra voucher tồn tại, còn hạn, còn lượt
+  db.query('SELECT * FROM vouchers WHERE code = ? AND is_active = 1', [code], function(err, vRes) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    if (vRes.length === 0) return res.status(404).json({ status: 'error', message: 'Mã giảm giá không tồn tại hoặc không còn hiệu lực' });
+    
+    var voucher = vRes[0];
+    
+    // Check expiry
+    if (new Date(voucher.expires_at) < new Date()) {
+      return res.status(400).json({ status: 'error', message: 'Mã giảm giá đã hết hạn' });
+    }
+    // Check limit
+    if (voucher.used_count >= voucher.usage_limit) {
+      return res.status(400).json({ status: 'error', message: 'Mã giảm giá đã hết lượt sử dụng' });
+    }
+    // Check min order value
+    if (orderTotal < voucher.min_order_value) {
+      return res.status(400).json({ status: 'error', message: 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã này' });
+    }
+
+    // 2. Kiểm tra user đã dùng chưa
+    db.query('SELECT id FROM user_vouchers WHERE user_id = ? AND voucher_id = ?', [userId, voucher.id], function(err2, uvRes) {
+      if (err2) return res.status(500).json({ status: 'error', message: err2.message });
+      if (uvRes.length > 0) {
+        return res.status(400).json({ status: 'error', message: 'Bạn đã sử dụng mã giảm giá này rồi, mỗi người chỉ được dùng 1 lần' });
+      }
+
+      // 3. Tính toán số tiền được giảm
+      var discountAmount = 0;
+      if (voucher.discount_type === 'percent') {
+        discountAmount = (orderTotal * voucher.discount_value) / 100;
+        if (voucher.max_discount && discountAmount > voucher.max_discount) {
+          discountAmount = voucher.max_discount;
+        }
+      } else {
+        discountAmount = voucher.discount_value;
+      }
+      
+      // Không được giảm quá tổng tiền
+      if (discountAmount > orderTotal) discountAmount = orderTotal;
+
+      res.json({ 
+        status: 'success', 
+        message: 'Áp dụng mã giảm giá thành công',
+        discount: discountAmount,
+        voucher_id: voucher.id,
+        voucher_code: voucher.code
+      });
+    });
+  });
+});
+
+// =============================================
+// GET /api/vouchers/available  →  Lấy danh sách mã có thể lưu
+// =============================================
+router.get('/vouchers/available', function (req, res) {
+  var userId = req.query.user_id;
+  if (!userId) return res.status(400).json({ status: 'error', message: 'Thiếu user_id' });
+
+  // Lấy các mã còn hiệu lực, còn lượt dùng, và user CHƯA lưu
+  var sql = `
+    SELECT v.* 
+    FROM vouchers v
+    WHERE v.is_active = 1 
+      AND v.expires_at > NOW() 
+      AND v.used_count < v.usage_limit
+      AND v.id NOT IN (SELECT voucher_id FROM user_vouchers WHERE user_id = ?)
+  `;
+  db.query(sql, [userId], function(err, results) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', data: results });
+  });
+});
+
+// =============================================
+// GET /api/vouchers/my-wallet  →  Lấy kho voucher của user
+// =============================================
+router.get('/vouchers/my-wallet', function (req, res) {
+  var userId = req.query.user_id;
+  if (!userId) return res.status(400).json({ status: 'error', message: 'Thiếu user_id' });
+
+  // Lấy các mã user đã lưu nhưng CHƯA dùng (is_used = 0)
+  var sql = `
+    SELECT v.*, uv.is_used, uv.id as user_voucher_id
+    FROM vouchers v
+    JOIN user_vouchers uv ON v.id = uv.voucher_id
+    WHERE uv.user_id = ? AND uv.is_used = 0 AND v.is_active = 1 AND v.expires_at > NOW()
+  `;
+  db.query(sql, [userId], function(err, results) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', data: results });
+  });
+});
+
+// =============================================
+// POST /api/vouchers/save  →  Lưu mã vào kho
+// =============================================
+router.post('/vouchers/save', function (req, res) {
+  var userId = req.body.user_id;
+  var voucherId = req.body.voucher_id;
+
+  if (!userId || !voucherId) return res.status(400).json({ status: 'error', message: 'Thiếu thông tin' });
+
+  // Thêm vào kho, is_used mặc định là 0
+  db.query('INSERT INTO user_vouchers (user_id, voucher_id, is_used) VALUES (?, ?, 0)', [userId, voucherId], function(err, result) {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ status: 'error', message: 'Bạn đã lưu mã này rồi' });
+      return res.status(500).json({ status: 'error', message: err.message });
+    }
+    res.json({ status: 'success', message: 'Đã lưu mã vào kho' });
+  });
+});
+
+// =============================================
+// ADMIN VOUCHERS API
+// =============================================
+
+// POST /api/admin/vouchers  →  Tạo mới
+router.post('/admin/vouchers', function (req, res) {
+  var data = req.body;
+  if (!data.code || !data.discount_value || !data.expires_at) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng điền đủ thông tin bắt buộc' });
+  }
+
+  var sql = `
+    INSERT INTO vouchers 
+    (code, category, discount_type, discount_value, min_order_value, max_discount, usage_limit, expires_at, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  var params = [
+    data.code,
+    data.category || 'product',
+    data.discount_type || 'percent',
+    data.discount_value,
+    data.min_order_value || 0,
+    data.max_discount || null,
+    data.usage_limit || 100,
+    data.expires_at,
+    data.is_active !== undefined ? data.is_active : 1
+  ];
+
+  db.query(sql, params, function(err, result) {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ status: 'error', message: 'Mã voucher đã tồn tại' });
+      return res.status(500).json({ status: 'error', message: err.message });
+    }
+    res.json({ status: 'success', message: 'Thêm voucher thành công' });
+  });
+});
+
+// PUT /api/admin/vouchers/:id  →  Cập nhật
+router.put('/admin/vouchers/:id', function (req, res) {
+  var id = req.params.id;
+  var data = req.body;
+
+  var sql = `
+    UPDATE vouchers 
+    SET code=?, category=?, discount_type=?, discount_value=?, min_order_value=?, max_discount=?, usage_limit=?, expires_at=?, is_active=?
+    WHERE id=?
+  `;
+  var params = [
+    data.code,
+    data.category || 'product',
+    data.discount_type || 'percent',
+    data.discount_value,
+    data.min_order_value || 0,
+    data.max_discount || null,
+    data.usage_limit || 100,
+    data.expires_at,
+    data.is_active !== undefined ? data.is_active : 1,
+    id
+  ];
+
+  db.query(sql, params, function(err, result) {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ status: 'error', message: 'Mã voucher đã tồn tại' });
+      return res.status(500).json({ status: 'error', message: err.message });
+    }
+    res.json({ status: 'success', message: 'Cập nhật voucher thành công' });
+  });
+});
+
+// DELETE /api/admin/vouchers/:id  →  Xóa cứng
+router.delete('/admin/vouchers/:id', function (req, res) {
+  var id = req.params.id;
+  // Bảng user_vouchers đã có ON DELETE CASCADE nên xóa an toàn
+  db.query('DELETE FROM vouchers WHERE id = ?', [id], function(err, result) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', message: 'Xóa voucher thành công' });
   });
 });
 

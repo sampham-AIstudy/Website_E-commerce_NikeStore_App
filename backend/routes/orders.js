@@ -21,15 +21,16 @@ db.connect(function (err) {
 // POST /api/orders/checkout  →  Xử lý Thanh Toán
 // =============================================
 router.post('/checkout', function (req, res) {
-  var { user_id, fullname, phone, address, total_amount, cartItems } = req.body;
+  var { user_id, fullname, phone, address, total_amount, cartItems, voucher_ids } = req.body;
 
   if (!fullname || !phone || !address || !cartItems || cartItems.length === 0) {
     return res.status(400).json({ status: 'error', message: 'Vui lòng cung cấp đủ thông tin và sản phẩm' });
   }
 
   // 1. Tạo đơn hàng trong bảng `orders`
-  var sqlOrder = 'INSERT INTO orders (user_id, fullname, phone, address, total_amount, status) VALUES (?, ?, ?, ?, ?, "pending")';
-  var valuesOrder = [user_id || null, fullname, phone, address, total_amount];
+  var paymentMethod = req.body.payment_method || 'cod';
+  var sqlOrder = 'INSERT INTO orders (user_id, fullname, phone, address, total_amount, payment_method, status) VALUES (?, ?, ?, ?, ?, ?, "pending")';
+  var valuesOrder = [user_id || null, fullname, phone, address, total_amount, paymentMethod];
 
   db.query(sqlOrder, valuesOrder, function (err, result) {
     if (err) return res.status(500).json({ status: 'error', message: 'Lỗi tạo đơn hàng: ' + err.message });
@@ -52,7 +53,26 @@ router.post('/checkout', function (req, res) {
     db.query(sqlItems, [valuesItems], function (err2, result2) {
       if (err2) return res.status(500).json({ status: 'error', message: 'Lỗi lưu chi tiết đơn hàng: ' + err2.message });
 
-      res.json({ status: 'success', message: 'Đặt hàng thành công!', order_id: orderId });
+      // Cập nhật số lượng tồn kho (stock)
+      var updatePromises = cartItems.map(item => {
+        return new Promise((resolve) => {
+          var qty = item.cartQuantity || 1;
+          db.query('UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ?', [qty, item.id], resolve);
+        });
+      });
+
+      Promise.all(updatePromises).then(() => {
+        // Cập nhật trạng thái các voucher đã dùng
+        if (voucher_ids && voucher_ids.length > 0 && user_id) {
+          voucher_ids.forEach(vid => {
+            // Cập nhật user_vouchers thành đã sử dụng
+            db.query('UPDATE user_vouchers SET is_used = 1, used_at = NOW(), order_id = ? WHERE user_id = ? AND voucher_id = ? AND is_used = 0', [orderId, user_id, vid]);
+            // Tăng số lượt đã dùng của voucher
+            db.query('UPDATE vouchers SET used_count = used_count + 1 WHERE id = ?', [vid]);
+          });
+        }
+        res.json({ status: 'success', message: 'Đặt hàng thành công!', order_id: orderId });
+      });
     });
   });
 });
@@ -108,11 +128,60 @@ router.put('/:id/status', function(req, res) {
     return res.status(400).json({ status: 'error', message: 'Vui lòng cung cấp trạng thái mới' });
   }
 
-  db.query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId], function(err, result) {
-    if (err) return res.status(500).json({ status: 'error', message: err.message });
-    if (result.affectedRows === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy đơn hàng để cập nhật' });
+  // 1. Lấy trạng thái cũ của đơn hàng
+  db.query('SELECT status FROM orders WHERE id = ?', [orderId], function(err1, result1) {
+    if (err1) return res.status(500).json({ status: 'error', message: err1.message });
+    if (result1.length === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy đơn hàng' });
     
-    res.json({ status: 'success', message: 'Đã cập nhật trạng thái đơn hàng thành công' });
+    var oldStatus = result1[0].status;
+
+    // 2. Cập nhật trạng thái mới
+    db.query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId], function(err, result) {
+      if (err) return res.status(500).json({ status: 'error', message: err.message });
+      
+      // 3. Xử lý tồn kho (stock) dựa trên sự thay đổi trạng thái
+      if (status === 'cancelled' && oldStatus !== 'cancelled') {
+        // Hủy đơn -> Trả lại kho
+        db.query('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId], function(err3, items) {
+          if (!err3 && items) {
+            items.forEach(item => {
+              db.query('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]);
+            });
+          }
+        });
+      } else if (oldStatus === 'cancelled' && status !== 'cancelled') {
+        // Khôi phục đơn -> Trừ lại kho
+        db.query('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId], function(err3, items) {
+          if (!err3 && items) {
+            items.forEach(item => {
+              db.query('UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ?', [item.quantity, item.product_id]);
+            });
+          }
+        });
+      }
+      
+      res.json({ status: 'success', message: 'Đã cập nhật trạng thái đơn hàng thành công' });
+    });
+  });
+});
+
+// =============================================
+// PUT /api/orders/:id/payment-status  →  Xác nhận thanh toán VPBank (Cho Admin)
+// =============================================
+router.put('/:id/payment-status', function(req, res) {
+  var orderId = req.params.id;
+  var payment_status = req.body.payment_status;
+
+  var allowed = ['pending', 'paid', 'failed'];
+  if (!payment_status || !allowed.includes(payment_status)) {
+    return res.status(400).json({ status: 'error', message: 'Trạng thái thanh toán không hợp lệ (pending/paid/failed)' });
+  }
+
+  db.query('UPDATE orders SET payment_status = ? WHERE id = ?', [payment_status, orderId], function(err, result) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    if (result.affectedRows === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy đơn hàng' });
+
+    res.json({ status: 'success', message: 'Đã cập nhật trạng thái thanh toán thành công' });
   });
 });
 

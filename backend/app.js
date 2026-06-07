@@ -1,7 +1,8 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config(); // Fallback to current dir
 var createError = require('http-errors');
 var express = require('express');
-var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
@@ -10,8 +11,28 @@ var indexRouter = require('./routes/index');
 var apiRouter = require('./routes/api');
 var authRouter = require('./routes/auth');
 var ordersRouter = require('./routes/orders');
+var chatRouter = require('./routes/chat');
 
 var app = express();
+
+// Helper to translate item_type to Vietnamese globally for EJS
+app.locals.translateItemType = function(type) {
+  const map = {
+    'accessories': 'Phụ kiện',
+    'apparel': 'Quần áo',
+    'bags': 'Balo/Túi',
+    'cap': 'Mũ/Nón',
+    'equipment': 'Dụng cụ',
+    'hoodie': 'Áo Hoodie',
+    'jacket': 'Áo khoác',
+    'pants': 'Quần dài',
+    'shirt': 'Áo thun',
+    'shoes': 'Giày',
+    'shorts': 'Quần ngắn',
+    'socks': 'Tất/Vớ'
+  };
+  return map[(type || '').toLowerCase()] || type || '';
+};
 
 // View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -37,6 +58,7 @@ app.use('/', indexRouter);
 app.use('/api', apiRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/chat', chatRouter);
 
 // 404 handler
 app.use(function (req, res, next) {

@@ -20,7 +20,7 @@
   <!-- ========================================== -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-    <!-- Empty Cart Page State -->
+    <!-- Empty Cart Page State (cart is completely empty) -->
     <div id="cartPageEmptyState"
       class="bg-white rounded-3xl p-16 text-center shadow-sm border border-gray-100 space-y-6 hidden">
       <img src="/assets/design/emptybag.png" alt="Empty Bag"
@@ -38,11 +38,34 @@
         Sắm Ngay</button>
     </div>
 
-    <!-- Active Cart State (Dual Column layout) -->
-    <div id="cartPageActiveState" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- No Selected Items State (cart has items but none checked) -->
+    <div id="cartPageNoSelectionState"
+      class="bg-white rounded-3xl p-16 text-center shadow-sm border border-gray-100 space-y-6 hidden">
+      <div class="w-20 h-20 mx-auto bg-orange-50 rounded-full flex items-center justify-center">
+        <svg class="w-10 h-10 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+          </path>
+        </svg>
+      </div>
+      <div class="space-y-2">
+        <h3 class="font-extrabold text-2xl text-gray-800">Chưa chọn sản phẩm nào!</h3>
+        <p class="text-sm text-gray-500 max-w-md mx-auto leading-relaxed font-light">
+          Vui lòng mở <strong class="text-nike-black">Giỏ Hàng</strong> ở góc trên bên phải, tích chọn sản phẩm muốn mua,
+          rồi nhấn <strong class="text-nike-black">Thanh Toán</strong> để quay lại đây.
+        </p>
+      </div>
+      <button onclick="window.location.href='/'"
+        class="bg-nike-black text-white hover:bg-nike-orange px-8 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all duration-300 shadow-md glow-dark hover:glow-orange">
+        ← Quay Lại Mua Sắm
+      </button>
+    </div>
 
-      <!-- Left: Cart Items List (8 Columns) -->
-      <div class="lg:col-span-7 space-y-6" id="cartPageItemsContainer">
+    <!-- Active Cart State (Dual Column layout) — only shown when there are checked items -->
+    <div id="cartPageActiveState" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start hidden">
+
+      <!-- Left: Selected Items List (7 Columns) -->
+      <div class="lg:col-span-7 space-y-4" id="cartPageItemsContainer">
         <!-- Rendered dynamically by client JS -->
       </div>
 
@@ -65,6 +88,25 @@
             <span class="font-medium">Thuế VAT (10%)</span>
             <span class="font-bold text-nike-black" id="summaryTax">0đ</span>
           </div>
+          
+          <!-- Voucher Section -->
+          <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+            <span class="font-bold text-gray-800 text-xs flex items-center gap-2">
+              <svg class="w-4 h-4 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
+              Nike Voucher
+            </span>
+            <button type="button" onclick="openVoucherModal()" class="text-nike-orange font-bold text-xs hover:underline focus:outline-none">Chọn Voucher</button>
+          </div>
+          
+          <div id="selectedVouchersDisplay" class="flex flex-col gap-1 mt-2 hidden">
+            <!-- Selected vouchers badges will go here -->
+          </div>
+
+          <div class="flex justify-between hidden text-green-600 border-t border-gray-50 pt-2" id="summaryDiscountRow">
+            <span class="font-medium text-xs">Tổng giảm giá Voucher</span>
+            <span class="font-bold text-sm" id="summaryDiscount">-0đ</span>
+          </div>
+
           <div class="flex justify-between text-base font-extrabold text-nike-black pt-2">
             <span class="uppercase tracking-wider">Tổng cộng:</span>
             <span class="text-xl text-nike-orange font-extrabold" id="summaryGrandTotal">0đ</span>
@@ -73,36 +115,53 @@
 
         <!-- Checkout Form -->
         <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-4">
-          <!-- Full Name -->
-          <div class="space-y-1.5">
-            <label for="fullname" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Họ và Tên người
-              nhận *</label>
-            <input type="text" id="fullname" required placeholder="Nguyễn Văn A"
-              class="w-full bg-gray-50 border-0 rounded-2xl py-3 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
-          </div>
-
-          <!-- Phone Number -->
-          <div class="space-y-1.5">
-            <label for="phone" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Số Điện Thoại
-              *</label>
-            <input type="tel" id="phone" required placeholder="0987654321"
-              class="w-full bg-gray-50 border-0 rounded-2xl py-3 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all">
-          </div>
-
-          <!-- Delivery Address -->
-          <div class="space-y-1.5">
-            <label for="address" class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Địa chỉ nhận
-              hàng *</label>
-            <textarea id="address" required rows="3" placeholder="Số 12, ngõ 34, đường ABC, Hà Nội"
-              class="w-full bg-gray-50 border-0 rounded-2xl py-3 px-4 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-nike-orange/50 transition-all"></textarea>
+          <!-- Selected Address Block -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Địa chỉ nhận hàng *</label>
+              <button type="button" onclick="openSelectAddressModal()" class="text-nike-orange font-bold text-xs hover:underline focus:outline-none">Thay đổi</button>
+            </div>
+            
+            <div id="selectedAddressCard" onclick="openSelectAddressModal()" class="bg-gray-50 p-4 rounded-2xl border-2 border-transparent hover:border-nike-orange/30 transition-all cursor-pointer relative group">
+              <!-- Rendered via JS -->
+              <p class="text-sm text-gray-500 text-center py-4">Đang tải địa chỉ...</p>
+            </div>
           </div>
 
           <!-- Payment Method -->
           <div class="space-y-2">
             <label class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Phương thức thanh toán</label>
-            <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-3">
-              <input type="radio" checked id="cod" name="payment" class="accent-nike-orange w-4 h-4">
-              <label for="cod" class="text-xs font-bold text-gray-700">Thanh toán khi nhận hàng (COD)</label>
+
+            <!-- COD -->
+            <div class="p-3 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-gray-300 flex items-center gap-3 cursor-pointer transition-all duration-200" onclick="selectPayment('cod')">
+              <input type="radio" checked id="cod" name="payment" value="cod" class="accent-nike-orange w-4 h-4">
+              <label for="cod" class="flex items-center gap-2 cursor-pointer">
+                <span class="text-base">🚚</span>
+                <span class="text-xs font-bold text-gray-700">Thanh toán khi nhận hàng (COD)</span>
+              </label>
+            </div>
+
+            <!-- VPBank -->
+            <div class="p-3 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-green-200 flex items-center gap-3 cursor-pointer transition-all duration-200" onclick="selectPayment('vpbank')">
+              <input type="radio" id="vpbank_pay" name="payment" value="vpbank" class="accent-green-500 w-4 h-4">
+              <label for="vpbank_pay" class="flex items-center gap-2 cursor-pointer">
+                <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-VPBank.png" alt="VPBank" class="h-4 w-auto" onerror="this.style.display='none'">
+                <span class="text-xs font-bold text-gray-700">Chuyển khoản <span class="text-green-600 font-extrabold">VPBank</span> <span class="text-gray-400 font-normal">(QR · Napas 247)</span></span>
+              </label>
+            </div>
+
+            <!-- VPBank Info Preview Box -->
+            <div id="vpbankInfoBox" class="hidden p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 space-y-2">
+              <p class="text-[10px] font-bold text-green-700 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse"></span>
+                Quét mã QR hoặc chuyển khoản sau khi đặt hàng thành công
+              </p>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                <span class="text-gray-500">Ngân hàng:</span><span class="font-bold text-gray-800">VPBank</span>
+                <span class="text-gray-500">Số tài khoản:</span><span class="font-bold text-gray-800 select-all cursor-text">312997495</span>
+                <span class="text-gray-500">Chủ tài khoản:</span><span class="font-bold text-gray-800">PHAM VAN SAM</span>
+                <span class="text-gray-500">Nội dung CK:</span><span class="font-bold text-nike-orange">NIKE [Mã đơn hàng]</span>
+              </div>
             </div>
           </div>
 
@@ -159,9 +218,99 @@
             id="receiptTotal" class="font-extrabold text-nike-orange">0đ</span></div>
       </div>
 
+      <!-- VPBank QR Payment Section (hiện sau khi đặt hàng bằng VPBank) -->
+      <div id="vpbankModalSection" class="hidden pt-4 border-t border-gray-100 space-y-3">
+        <p class="text-xs font-bold text-green-600 flex items-center justify-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          Quét mã QR để hoàn tất thanh toán
+        </p>
+        <img id="vpbankQRImg" src="" alt="QR VPBank" class="w-44 h-44 mx-auto rounded-2xl border border-green-100 shadow-md object-contain bg-white p-1">
+        <p class="text-[10px] text-center text-gray-500">Nội dung chuyển khoản: <strong id="vpbankTransferNote" class="text-nike-orange font-bold"></strong></p>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] bg-gray-50 rounded-xl p-3">
+          <span class="text-gray-500">Số TK:</span><strong class="text-gray-800 select-all">312997495</strong>
+          <span class="text-gray-500">Chủ TK:</span><strong class="text-gray-800">PHAM VAN SAM</strong>
+          <span class="text-gray-500">Ngân hàng:</span><strong class="text-gray-800">VPBank</strong>
+        </div>
+        <a href="https://go.vpbank.com.vn/nAWi43Y" target="_blank" rel="noopener"
+          class="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-3 rounded-full transition-colors shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Mở VPBank NEO · Chuyển khoản nhanh
+        </a>
+      </div>
+
       <button onclick="window.location.href='/'"
         class="w-full bg-nike-black hover:bg-nike-orange text-white text-center font-extrabold py-3.5 px-6 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md">Trở
         về Trang Chủ</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- SELECT ADDRESS MODAL                       -->
+  <!-- ========================================== -->
+  <div id="selectAddressModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[115] flex items-center justify-center hidden p-4 transition-opacity duration-300">
+    <div class="bg-gray-50 rounded-3xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 relative">
+      <div class="bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10 sticky top-0 shadow-sm">
+        <h3 class="font-extrabold text-lg text-nike-black uppercase tracking-wide flex items-center gap-2">
+          <svg class="w-5 h-5 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Chọn địa chỉ nhận hàng
+        </h3>
+        <button onclick="closeSelectAddressModal()" class="text-gray-400 hover:text-red-500 transition-colors focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div id="checkoutAddressList" class="space-y-3">
+          <!-- Rendered by JS -->
+          <div class="text-center text-xs text-gray-400 py-4">Đang tải...</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex gap-3">
+        <button onclick="window.location.href='/profile'" class="flex-1 border-2 border-nike-orange text-nike-orange hover:bg-orange-50 font-extrabold text-xs py-3.5 rounded-full shadow-sm transition-colors uppercase tracking-wider">Quản lý địa chỉ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- VOUCHER MODAL                              -->
+  <!-- ========================================== -->
+  <div id="voucherModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center hidden p-4 transition-opacity duration-300">
+    <div class="bg-gray-50 rounded-3xl max-w-lg w-full h-[80vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 relative">
+      <div class="bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10 sticky top-0 shadow-sm">
+        <h3 class="font-extrabold text-lg text-nike-black flex items-center gap-2">
+          <svg class="w-5 h-5 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
+          Chọn Nike Voucher
+        </h3>
+        <button onclick="closeVoucherModal()" class="text-gray-400 hover:text-red-500 transition-colors focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-6">
+        <!-- Vouchers from Wallet -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-xs text-gray-500 uppercase tracking-wider flex justify-between items-center">
+            <span>Kho Voucher của bạn</span>
+          </h4>
+          <div id="walletVoucherList" class="space-y-3">
+             <!-- Rendered by JS -->
+             <div class="text-center text-xs text-gray-400 py-4">Đang tải...</div>
+          </div>
+        </div>
+
+        <!-- Available Vouchers (Săn Mã) -->
+        <div class="space-y-3 pt-4 border-t border-gray-200">
+          <h4 class="font-bold text-xs text-gray-500 uppercase tracking-wider">Mã mới dành cho bạn</h4>
+          <div id="availableVoucherList" class="space-y-3">
+             <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button onclick="confirmVoucherSelection()" class="w-full bg-nike-orange hover:bg-orange-600 text-white font-extrabold text-sm py-3.5 rounded-full shadow-md transition-colors glow-orange">XÁC NHẬN CHỌN</button>
+      </div>
     </div>
   </div>
 
@@ -170,53 +319,45 @@
     function renderCartPage() {
       const cart = getCart();
       const emptyState = document.getElementById('cartPageEmptyState');
+      const noSelectionState = document.getElementById('cartPageNoSelectionState');
       const activeState = document.getElementById('cartPageActiveState');
       const container = document.getElementById('cartPageItemsContainer');
 
+      // Get only selected items
+      const selectedItems = cart.filter(item => item.checked);
+
       if (cart.length === 0) {
+        // Case 1: Cart is completely empty
         emptyState.classList.remove('hidden');
+        noSelectionState.classList.add('hidden');
+        activeState.classList.add('hidden');
+      } else if (selectedItems.length === 0) {
+        // Case 2: Cart has items but none selected
+        emptyState.classList.add('hidden');
+        noSelectionState.classList.remove('hidden');
         activeState.classList.add('hidden');
       } else {
+        // Case 3: Has selected items — show checkout view
         emptyState.classList.add('hidden');
+        noSelectionState.classList.add('hidden');
         activeState.classList.remove('hidden');
 
-        // Clear container first
+        // Clear container
         container.innerHTML = '';
-
-        // Render Select All Bar
-        const allChecked = cart.every(item => item.checked);
-        const selectedCount = cart.filter(item => item.checked).length;
-        
-        const selectAllBarHtml = `
-          <div class="flex items-center justify-between p-4 bg-white rounded-3xl border border-gray-100 shadow-sm mb-4">
-            <div class="flex items-center gap-3">
-              <input type="checkbox" id="selectAllCheckbox" ${allChecked ? 'checked' : ''} onchange="toggleSelectAll(this.checked)" class="accent-nike-orange w-5 h-5 rounded border-gray-300 text-nike-orange focus:ring-nike-orange/50 transition-all cursor-pointer">
-              <label for="selectAllCheckbox" class="text-sm font-bold text-gray-800 cursor-pointer">Chọn tất cả (${selectedCount}/${cart.length})</label>
-            </div>
-            <button onclick="deleteSelected()" class="text-xs text-gray-400 hover:text-red-500 font-bold transition-colors focus:outline-none">Xóa mục đã chọn</button>
-          </div>
-        `;
-        container.insertAdjacentHTML('beforeend', selectAllBarHtml);
 
         let subtotal = 0;
 
-        cart.forEach(item => {
+        // Render ONLY checked items (no checkboxes shown)
+        selectedItems.slice().reverse().forEach(item => {
           const itemTotal = item.price * item.cartQuantity;
-          if (item.checked) {
-            subtotal += itemTotal;
-          }
+          subtotal += itemTotal;
 
           const itemHtml = `
             <div class="flex flex-col sm:flex-row gap-6 p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative group hover:border-nike-orange/15 transition-all duration-300">
-              <!-- Delete -->
+              <!-- Delete (removes from cart & re-renders) -->
               <button onclick="removeFromCart(${item.id}, '${item.size}', '${item.color}'); renderCartPage();" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors p-1.5 focus:outline-none">
                 <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
-
-              <!-- Checkbox selection -->
-              <div class="flex items-center justify-center sm:pr-2 flex-shrink-0">
-                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItemSelect(${item.id}, '${item.size}', '${item.color}', this.checked)" class="accent-nike-orange w-5 h-5 rounded border-gray-300 text-nike-orange focus:ring-nike-orange/50 transition-all cursor-pointer">
-              </div>
 
               <!-- Image -->
               <div class="w-28 h-28 bg-gradient-to-b from-gray-50/50 to-white rounded-2xl flex items-center justify-center border border-gray-100 overflow-hidden p-2 flex-shrink-0">
@@ -253,26 +394,352 @@
           container.insertAdjacentHTML('beforeend', itemHtml);
         });
 
-        // 2. Calculations
-        let tax = subtotal * 0.10;
+        // Calculations
+        const tax = subtotal * 0.10;
         let grandTotal = subtotal + tax;
+
+        // Apply selected vouchers
+        let totalDiscount = 0;
+        let appliedProductDiscount = 0;
+        let appliedShippingDiscount = 0;
+
+        if (selectedVouchers.product) {
+           let disc = calculateDiscount(selectedVouchers.product, grandTotal);
+           appliedProductDiscount = disc;
+        }
+        if (selectedVouchers.shipping) {
+           // Giả lập phí ship là 30k
+           let disc = calculateDiscount(selectedVouchers.shipping, 30000);
+           appliedShippingDiscount = disc;
+        }
+
+        totalDiscount = appliedProductDiscount + appliedShippingDiscount;
+        if (totalDiscount > grandTotal) totalDiscount = grandTotal;
+        grandTotal -= totalDiscount;
+
+        if (totalDiscount > 0) {
+          document.getElementById('summaryDiscountRow').classList.remove('hidden');
+          document.getElementById('summaryDiscount').textContent = '-' + formatPrice(totalDiscount);
+        } else {
+          document.getElementById('summaryDiscountRow').classList.add('hidden');
+        }
 
         document.getElementById('summarySubtotal').textContent = formatPrice(subtotal);
         document.getElementById('summaryTax').textContent = formatPrice(tax);
         document.getElementById('summaryGrandTotal').textContent = formatPrice(grandTotal);
-
-        // 3. Enable/Disable Checkout Button
-        const submitBtn = document.getElementById('submitOrderBtn');
-        if (selectedCount === 0) {
-          submitBtn.disabled = true;
-          submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-          submitBtn.classList.remove('hover:bg-nike-orange', 'glow-dark', 'hover:glow-orange');
-        } else {
-          submitBtn.disabled = false;
-          submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-          submitBtn.classList.add('hover:bg-nike-orange', 'glow-dark', 'hover:glow-orange');
-        }
+        
+        renderSelectedVouchersBadge();
       }
+    }
+
+    let selectedVouchers = { product: null, shipping: null };
+    let walletVouchers = [];
+    let availableVouchers = [];
+
+    function calculateDiscount(voucher, baseAmount) {
+      if (voucher.discount_type === 'fixed') {
+        return parseFloat(voucher.discount_value);
+      } else {
+        let disc = baseAmount * (parseFloat(voucher.discount_value) / 100);
+        if (voucher.max_discount && disc > parseFloat(voucher.max_discount)) {
+          disc = parseFloat(voucher.max_discount);
+        }
+        return disc;
+      }
+    }
+
+    async function loadVouchersData() {
+      const userStr = localStorage.getItem('nike_user');
+      if(!userStr) return;
+      const user = JSON.parse(userStr);
+      try {
+        const [resWallet, resAvail] = await Promise.all([
+          fetch(`/api/vouchers/my-wallet?user_id=${user.id}`),
+          fetch(`/api/vouchers/available?user_id=${user.id}`)
+        ]);
+        const wData = await resWallet.json();
+        const aData = await resAvail.json();
+        if(wData.status === 'success') walletVouchers = wData.data;
+        if(aData.status === 'success') availableVouchers = aData.data;
+      } catch(e) { console.error("Lỗi tải voucher:", e); }
+    }
+
+    function renderVoucherItem(v, isWallet = false) {
+      const isShipping = v.category === 'shipping';
+      const isSelected = (selectedVouchers.product?.id === v.id) || (selectedVouchers.shipping?.id === v.id);
+      
+      const cart = getCart();
+      const selectedItems = cart.filter(item => item.checked);
+      let subtotal = selectedItems.reduce((acc, item) => acc + (item.price * item.cartQuantity), 0);
+      let orderTotal = subtotal * 1.10;
+      
+      const isEligible = orderTotal >= parseFloat(v.min_order_value);
+      
+      let badgeColor = isShipping ? 'bg-green-500' : 'bg-nike-orange';
+      let title = isShipping ? 'Miễn Phí Vận Chuyển' : 'Giảm Giá Sản Phẩm';
+      let desc = v.discount_type === 'fixed' 
+        ? `Giảm ${formatPrice(v.discount_value)}` 
+        : `Giảm ${v.discount_value}%` + (v.max_discount ? ` tối đa ${formatPrice(v.max_discount)}` : '');
+      
+      let minOrderText = v.min_order_value > 0 ? `Đơn tối thiểu ${formatPrice(v.min_order_value)}` : 'Mọi đơn hàng';
+
+      let actionHtml = '';
+      if (isWallet) {
+        if (isEligible) {
+           actionHtml = `
+             <input type="radio" name="voucher_${v.category}" value="${v.id}" class="w-5 h-5 accent-nike-orange cursor-pointer" ${isSelected ? 'checked' : ''} onchange="tempSelectVoucher(${v.id}, '${v.category}')">
+           `;
+        } else {
+           actionHtml = `<span class="text-[10px] text-red-500 font-bold whitespace-nowrap">Chưa đủ ĐK</span>`;
+        }
+      } else {
+        actionHtml = `
+          <button onclick="saveVoucher(${v.id})" class="bg-nike-black text-white hover:bg-nike-orange text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider transition-colors whitespace-nowrap">Lưu Mã</button>
+        `;
+      }
+
+      return `
+        <div class="flex bg-white border ${isSelected ? 'border-nike-orange' : 'border-gray-200'} rounded-2xl overflow-hidden shadow-sm ${!isEligible && isWallet ? 'opacity-60 grayscale-[50%]' : ''}">
+          <!-- Left Ribbon -->
+          <div class="w-20 ${badgeColor} flex flex-col items-center justify-center text-white p-2 border-r border-dashed border-gray-300 relative">
+            <!-- Cutouts -->
+            <div class="w-4 h-4 bg-gray-50 rounded-full absolute -left-2 top-1/2 transform -translate-y-1/2"></div>
+            <div class="w-4 h-4 bg-gray-50 rounded-full absolute -right-2 top-1/2 transform -translate-y-1/2"></div>
+            
+            ${isShipping 
+              ? `<svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>`
+              : `<span class="font-extrabold text-2xl mb-1">%</span>`
+            }
+            <span class="text-[9px] uppercase font-bold text-center leading-tight">${title}</span>
+          </div>
+          
+          <!-- Right Content -->
+          <div class="flex-1 p-3 flex justify-between items-center gap-2">
+            <div>
+              <h5 class="font-bold text-xs text-gray-800">${v.code}</h5>
+              <p class="text-[10px] text-nike-orange font-bold mt-0.5">${desc}</p>
+              <p class="text-[9px] text-gray-500 mt-1">${minOrderText}</p>
+            </div>
+            <div>
+              ${actionHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let tempSelections = { product: null, shipping: null };
+
+    async function openVoucherModal() {
+      const userStr = localStorage.getItem('nike_user');
+      if(!userStr) return alert("Vui lòng đăng nhập để sử dụng mã giảm giá!");
+      const cart = getCart();
+      if(cart.filter(item => item.checked).length === 0) return alert("Vui lòng chọn sản phẩm trước khi áp mã!");
+
+      tempSelections = { product: selectedVouchers.product?.id || null, shipping: selectedVouchers.shipping?.id || null };
+
+      document.getElementById('walletVoucherList').innerHTML = '<div class="text-center text-xs text-gray-400 py-4">Đang tải...</div>';
+      
+      await loadVouchersData();
+
+      const walletList = document.getElementById('walletVoucherList');
+      const availList = document.getElementById('availableVoucherList');
+
+      if (walletVouchers.length === 0) {
+        walletList.innerHTML = '<div class="text-center text-xs text-gray-400 py-4 bg-white rounded-2xl border border-gray-100">Kho voucher trống.</div>';
+      } else {
+        walletList.innerHTML = walletVouchers.map(v => renderVoucherItem(v, true)).join('');
+      }
+
+      if (availableVouchers.length === 0) {
+        availList.innerHTML = '<div class="text-center text-xs text-gray-400 py-4 bg-white rounded-2xl border border-gray-100">Hiện không có mã mới nào.</div>';
+      } else {
+        availList.innerHTML = availableVouchers.map(v => renderVoucherItem(v, false)).join('');
+      }
+
+      const modal = document.getElementById('voucherModal');
+      modal.classList.remove('hidden');
+      setTimeout(() => { modal.querySelector('div').classList.remove('scale-95'); }, 10);
+    }
+
+    function closeVoucherModal() {
+      const modal = document.getElementById('voucherModal');
+      modal.querySelector('div').classList.add('scale-95');
+      setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
+    function tempSelectVoucher(id, category) {
+      tempSelections[category] = tempSelections[category] === id ? null : id; // Toggle
+      // Re-render just the radio visual states if needed, but browser handles radio. Wait, browser handles radio within name group.
+      // But we need to allow unselecting. If they click already selected, we can clear it.
+    }
+
+    function confirmVoucherSelection() {
+      selectedVouchers.product = walletVouchers.find(v => v.id === tempSelections.product) || null;
+      selectedVouchers.shipping = walletVouchers.find(v => v.id === tempSelections.shipping) || null;
+      closeVoucherModal();
+      renderCartPage(); // Recalculate and show
+    }
+
+    function renderSelectedVouchersBadge() {
+      const container = document.getElementById('selectedVouchersDisplay');
+      container.innerHTML = '';
+      let hasVouchers = false;
+      
+      if (selectedVouchers.product) {
+        hasVouchers = true;
+        container.innerHTML += `<div class="bg-orange-50 border border-orange-200 text-nike-orange text-[10px] font-bold px-2 py-1 rounded flex justify-between items-center">
+          <span>🎁 Giảm giá: ${selectedVouchers.product.code}</span>
+          <button onclick="removeSelectedVoucher('product')" class="text-red-500 hover:text-red-700 ml-2">&times;</button>
+        </div>`;
+      }
+      if (selectedVouchers.shipping) {
+        hasVouchers = true;
+        container.innerHTML += `<div class="bg-green-50 border border-green-200 text-green-600 text-[10px] font-bold px-2 py-1 rounded flex justify-between items-center">
+          <span>🚚 Freeship: ${selectedVouchers.shipping.code}</span>
+          <button onclick="removeSelectedVoucher('shipping')" class="text-red-500 hover:text-red-700 ml-2">&times;</button>
+        </div>`;
+      }
+
+      if (hasVouchers) {
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function removeSelectedVoucher(type) {
+      selectedVouchers[type] = null;
+      renderCartPage();
+    }
+
+    async function saveVoucher(voucherId) {
+      const user = JSON.parse(localStorage.getItem('nike_user'));
+      try {
+        const res = await fetch('/api/vouchers/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, voucher_id: voucherId })
+        });
+        const result = await res.json();
+        if(result.status === 'success') {
+          // Re-open modal to refresh lists
+          openVoucherModal();
+        } else {
+          alert(result.message);
+        }
+      } catch(e) {
+        alert("Lỗi lưu mã!");
+      }
+    }
+
+    function selectPayment(method) {
+      document.getElementById(method === 'vpbank' ? 'vpbank_pay' : 'cod').checked = true;
+      document.getElementById('vpbankInfoBox').classList.toggle('hidden', method !== 'vpbank');
+    }
+
+    let checkoutAddresses = [];
+    let selectedAddress = null;
+
+    async function loadCheckoutAddresses(userId) {
+      try {
+        const res = await fetch(`/api/auth/users/\${userId}/addresses`);
+        const data = await res.json();
+        if(data.status === 'success') {
+          checkoutAddresses = data.data;
+          if(checkoutAddresses.length > 0) {
+            // Select default address or first one
+            selectedAddress = checkoutAddresses.find(a => a.is_default) || checkoutAddresses[0];
+          }
+          renderSelectedAddress();
+        }
+      } catch(e) { console.error('Lỗi tải địa chỉ:', e); }
+    }
+
+    function renderSelectedAddress() {
+      const card = document.getElementById('selectedAddressCard');
+      if (!selectedAddress) {
+        card.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-4 space-y-3">
+            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <p class="text-sm text-gray-500 font-medium">Bạn chưa có địa chỉ nhận hàng</p>
+            <button type="button" onclick="window.location.href='/profile'" class="bg-nike-black text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-nike-orange transition-colors">Thêm Địa Chỉ Mới</button>
+          </div>
+        `;
+        return;
+      }
+      
+      card.innerHTML = `
+        \${selectedAddress.is_default ? '<div class="absolute top-0 right-0 bg-nike-orange text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Mặc định</div>' : ''}
+        <div class="flex items-start gap-3">
+          <div class="mt-1">
+            <svg class="w-5 h-5 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h4 class="font-bold text-gray-900 text-sm">\${selectedAddress.fullname}</h4>
+              <span class="text-gray-300 font-bold">|</span>
+              <span class="text-gray-600 font-semibold text-sm">\${selectedAddress.phone}</span>
+            </div>
+            <p class="text-gray-500 text-xs leading-relaxed max-w-[90%]">\${selectedAddress.full_address}</p>
+            <div class="mt-2">
+              <span class="inline-block border \${selectedAddress.type === 'home' ? 'border-blue-200 text-blue-600 bg-blue-50' : 'border-purple-200 text-purple-600 bg-purple-50'} text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
+                \${selectedAddress.type === 'home' ? 'Nhà Riêng' : 'Văn Phòng'}
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openSelectAddressModal() {
+      const modal = document.getElementById('selectAddressModal');
+      const list = document.getElementById('checkoutAddressList');
+      
+      if(checkoutAddresses.length === 0) {
+        list.innerHTML = '<div class="text-center py-10"><p class="text-gray-400 text-sm font-semibold">Bạn chưa có địa chỉ nhận hàng nào.</p></div>';
+      } else {
+        list.innerHTML = checkoutAddresses.map(addr => `
+          <div onclick="chooseAddressForCheckout(\${addr.id})" class="p-4 border \${selectedAddress && selectedAddress.id === addr.id ? 'border-nike-orange bg-orange-50/20' : 'border-gray-100 bg-white'} rounded-2xl cursor-pointer hover:border-nike-orange/50 transition-all relative">
+            \${addr.is_default ? '<div class="absolute top-0 right-0 bg-nike-orange text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Mặc định</div>' : ''}
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <h4 class="font-bold text-gray-900 text-sm">\${addr.fullname}</h4>
+                  <span class="text-gray-300 font-bold">|</span>
+                  <span class="text-gray-600 font-semibold text-sm">\${addr.phone}</span>
+                </div>
+                <p class="text-gray-500 text-xs leading-relaxed max-w-[90%]">\${addr.full_address}</p>
+                <div class="mt-1.5">
+                  <span class="inline-block border \${addr.type === 'home' ? 'border-blue-200 text-blue-600 bg-blue-50' : 'border-purple-200 text-purple-600 bg-purple-50'} text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
+                    \${addr.type === 'home' ? 'Nhà Riêng' : 'Văn Phòng'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <div class="w-5 h-5 rounded-full border-2 \${selectedAddress && selectedAddress.id === addr.id ? 'border-nike-orange bg-nike-orange flex items-center justify-center' : 'border-gray-300'}">
+                  \${selectedAddress && selectedAddress.id === addr.id ? '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      modal.classList.remove('hidden');
+      setTimeout(() => { modal.querySelector('div').classList.remove('scale-95'); }, 10);
+    }
+
+    function closeSelectAddressModal() {
+      const modal = document.getElementById('selectAddressModal');
+      modal.querySelector('div').classList.add('scale-95');
+      setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+
+    function chooseAddressForCheckout(id) {
+      selectedAddress = checkoutAddresses.find(a => a.id === id);
+      renderSelectedAddress();
+      closeSelectAddressModal();
     }
 
     async function handleCheckout(event) {
@@ -282,9 +749,9 @@
       const selectedItems = cart.filter(item => item.checked);
       if (selectedItems.length === 0) return alert('Vui lòng tích chọn sản phẩm muốn thanh toán!');
 
-      const fullname = document.getElementById('fullname').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const address = document.getElementById('address').value.trim();
+      if (!selectedAddress) {
+        return alert('Vui lòng chọn địa chỉ nhận hàng!');
+      }
 
       const userStr = localStorage.getItem('nike_user');
       let user_id = null;
@@ -295,9 +762,25 @@
         } catch (e) { }
       }
 
+      const fullname = selectedAddress.fullname;
+      const phone = selectedAddress.phone;
+      const address = selectedAddress.full_address;
+
       // Format Grand Total (selected items only)
       let subtotal = selectedItems.reduce((acc, item) => acc + (item.price * item.cartQuantity), 0);
       let grandTotal = subtotal * 1.10; // Tax 10%
+
+      let appliedProductDiscount = selectedVouchers.product ? calculateDiscount(selectedVouchers.product, grandTotal) : 0;
+      let appliedShippingDiscount = selectedVouchers.shipping ? calculateDiscount(selectedVouchers.shipping, 30000) : 0;
+      let totalDiscount = appliedProductDiscount + appliedShippingDiscount;
+      if (totalDiscount > grandTotal) totalDiscount = grandTotal;
+      grandTotal -= totalDiscount;
+
+      const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || 'cod';
+
+      let v_ids = [];
+      if(selectedVouchers.product) v_ids.push(selectedVouchers.product.id);
+      if(selectedVouchers.shipping) v_ids.push(selectedVouchers.shipping.id);
 
       const payload = {
         user_id: user_id,
@@ -305,7 +788,9 @@
         phone: phone,
         address: address,
         total_amount: grandTotal,
-        cartItems: selectedItems
+        payment_method: paymentMethod,
+        cartItems: selectedItems,
+        voucher_ids: v_ids
       };
 
       const submitBtn = document.getElementById('submitOrderBtn');
@@ -334,6 +819,18 @@
           document.getElementById('receiptPhone').textContent = phone;
           document.getElementById('receiptTotal').textContent = formatPrice(grandTotal);
 
+          // Hiển thị VPBank QR động nếu thanh toán bằng VPBank
+          const vpbankSection = document.getElementById('vpbankModalSection');
+          if (paymentMethod === 'vpbank') {
+            const transferNote = `NIKE ${result.order_id}`;
+            const qrUrl = `https://img.vietqr.io/image/VPB-312997495-compact2.png?amount=${Math.round(grandTotal)}&addInfo=${encodeURIComponent(transferNote)}&accountName=PHAM%20VAN%20SAM`;
+            document.getElementById('vpbankQRImg').src = qrUrl;
+            document.getElementById('vpbankTransferNote').textContent = transferNote;
+            vpbankSection.classList.remove('hidden');
+          } else {
+            vpbankSection.classList.add('hidden');
+          }
+
           // Open Success Modal
           const modal = document.getElementById('orderSuccessModal');
           modal.classList.remove('hidden');
@@ -356,13 +853,16 @@
     document.addEventListener('DOMContentLoaded', () => {
       renderCartPage();
 
-      // Prepopulate form if user is logged in
+      // Pre-fill form from saved profile in localStorage
       const userStr = localStorage.getItem('nike_user');
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          document.getElementById('fullname').value = user.username === 'admin' ? 'Nike Administrator' : user.username;
+          loadCheckoutAddresses(user.id);
         } catch (e) { }
+      } else {
+        // Redirect to login if not logged in
+        window.location.href = '/login';
       }
     });
   </script>

@@ -88,6 +88,11 @@
   </footer>
 
   <!-- ========================================== -->
+  <!-- AI CHAT WIDGET                             -->
+  <!-- ========================================== -->
+  <%- include('chat') %>
+
+  <!-- ========================================== -->
   <!-- DYNAMIC CLIENT JAVASCRIPT                 -->
   <!-- ========================================== -->
   <script>
@@ -178,7 +183,7 @@
       let updated = false;
       parsed.forEach(item => {
         if (item.checked === undefined) {
-          item.checked = true;
+          item.checked = false;
           updated = true;
         }
       });
@@ -211,7 +216,7 @@
       if (existingItem) {
         existingItem.cartQuantity += quantity;
         if (existingItem.checked === undefined) {
-          existingItem.checked = true;
+          existingItem.checked = false;
         }
       } else {
         cart.push({
@@ -223,7 +228,7 @@
           size: size,
           color: color,
           cartQuantity: quantity,
-          checked: true
+          checked: false
         });
       }
       saveCart(cart);
@@ -300,6 +305,7 @@
       const emptyState = document.getElementById('emptyCartState');
       const footerSummary = document.getElementById('cartFooter');
       const totalPriceEl = document.getElementById('cartTotalPrice');
+      const selectAllBar = document.getElementById('sidebarSelectAllBar');
 
       // 1. Update badges
       const totalItems = cart.reduce((acc, item) => acc + item.cartQuantity, 0);
@@ -315,12 +321,24 @@
       if (cart.length === 0) {
         if(emptyState) emptyState.classList.remove('hidden');
         if(footerSummary) footerSummary.classList.add('hidden');
+        if(selectAllBar) selectAllBar.classList.add('hidden');
         // Clear all item elements except empty state
         const itemNodes = cartItemsList.querySelectorAll('.cart-item-node');
         itemNodes.forEach(n => n.remove());
       } else {
         if(emptyState) emptyState.classList.add('hidden');
         if(footerSummary) footerSummary.classList.remove('hidden');
+
+        // Show & update select-all bar
+        if(selectAllBar) {
+          selectAllBar.classList.remove('hidden');
+          const allChecked = cart.every(item => item.checked);
+          const selectAllCb = document.getElementById('sidebarSelectAllCb');
+          if(selectAllCb) selectAllCb.checked = allChecked;
+          const selectedCount = cart.filter(item => item.checked).length;
+          const selLabel = document.getElementById('sidebarSelectAllLabel');
+          if(selLabel) selLabel.textContent = `Chọn tất cả (${selectedCount}/${cart.length})`;
+        }
         
         // Remove existing cart item nodes
         const itemNodes = cartItemsList.querySelectorAll('.cart-item-node');
@@ -328,26 +346,38 @@
 
         let totalPrice = 0;
 
-        cart.forEach(item => {
+        cart.slice().reverse().forEach(item => {
           const itemSubtotal = item.price * item.cartQuantity;
-          totalPrice += itemSubtotal;
+          // Only sum checked items
+          if (item.checked) {
+            totalPrice += itemSubtotal;
+          }
 
           const itemHtml = `
-            <div class="cart-item-node flex gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100/50 hover:border-nike-orange/20 transition-all duration-300 relative group">
+            <div class="cart-item-node flex gap-3 p-3 bg-gray-50 rounded-2xl border ${
+              item.checked ? 'border-nike-orange/25' : 'border-gray-100/50'
+            } hover:border-nike-orange/30 transition-all duration-300 relative group">
               <!-- Delete Button -->
               <button onclick="removeFromCart(${item.id}, '${item.size}', '${item.color}')" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
+
+              <!-- Checkbox -->
+              <div class="flex items-center flex-shrink-0">
+                <input type="checkbox" ${item.checked ? 'checked' : ''}
+                  onchange="toggleSidebarItem(${item.id}, '${item.size}', '${item.color}', this.checked)"
+                  class="w-4 h-4 accent-nike-orange cursor-pointer rounded border-gray-300 focus:ring-nike-orange/50 transition-all">
+              </div>
               
               <!-- Image -->
-              <div class="w-20 h-20 bg-white rounded-xl flex items-center justify-center border border-gray-100 overflow-hidden p-1 flex-shrink-0">
+              <div class="w-18 h-18 bg-white rounded-xl flex items-center justify-center border border-gray-100 overflow-hidden p-1 flex-shrink-0" style="width:72px;height:72px">
                 <img src="${item.image}" alt="${item.title}" class="w-full h-auto object-contain transform hover:scale-110 transition-transform duration-300" onerror="this.src='/nike.png'">
               </div>
 
               <!-- Details -->
-              <div class="flex-1 flex flex-col justify-between">
+              <div class="flex-1 flex flex-col justify-between min-w-0">
                 <div>
-                  <h4 class="font-bold text-xs text-nike-black truncate w-48">${item.title}</h4>
+                  <h4 class="font-bold text-xs text-nike-black truncate pr-6">${item.title}</h4>
                   <div class="flex gap-2 text-[10px] text-gray-500 mt-1">
                     <span>Size: <strong class="text-nike-black font-semibold">${item.size}</strong></span>
                     <span>Màu: <strong class="text-nike-black font-semibold">${item.color}</strong></span>
@@ -362,7 +392,7 @@
                     <button onclick="updateQuantity(${item.id}, '${item.size}', '${item.color}', ${item.cartQuantity + 1})" class="text-gray-500 hover:text-nike-black font-bold text-sm px-1 focus:outline-none">+</button>
                   </div>
                   <!-- Price -->
-                  <span class="font-extrabold text-sm text-nike-orange">${formatPrice(itemSubtotal)}</span>
+                  <span class="font-extrabold text-sm ${item.checked ? 'text-nike-orange' : 'text-gray-400'}">${formatPrice(itemSubtotal)}</span>
                 </div>
               </div>
             </div>
@@ -370,8 +400,35 @@
           cartItemsList.insertAdjacentHTML('beforeend', itemHtml);
         });
 
+        // Update selected count label in footer
+        const selectedCount = cart.filter(item => item.checked).length;
+        const checkoutBtn = document.getElementById('sidebarCheckoutBtn');
+        if (checkoutBtn) {
+          if (selectedCount === 0) {
+            checkoutBtn.classList.add('opacity-50', 'pointer-events-none');
+          } else {
+            checkoutBtn.classList.remove('opacity-50', 'pointer-events-none');
+          }
+        }
+        const selectedInfo = document.getElementById('sidebarSelectedInfo');
+        if (selectedInfo) {
+          selectedInfo.textContent = selectedCount > 0 ? `Đã chọn ${selectedCount} sản phẩm` : 'Chưa chọn sản phẩm nào';
+        }
+
         if(totalPriceEl) totalPriceEl.textContent = formatPrice(totalPrice);
       }
+    }
+
+    // Toggle individual item in sidebar
+    function toggleSidebarItem(id, size, color, checked) {
+      toggleItemSelect(id, size, color, checked);
+      updateCartUI();
+    }
+
+    // Toggle all items in sidebar
+    function toggleSidebarSelectAll(checked) {
+      toggleSelectAll(checked);
+      updateCartUI();
     }
 
     // Helper: format price
@@ -506,7 +563,7 @@
       const logoutDropdownBtn= document.getElementById('logoutDropdownBtn');
 
       // Redirect if accessing a protected page while logged out
-      const protectedPages = ['/cart', '/wishlist', '/my-orders'];
+      const protectedPages = ['/cart', '/wishlist', '/my-orders', '/profile'];
       if (protectedPages.includes(window.location.pathname) && !userStr) {
         window.location.href = '/login';
         return;
@@ -521,14 +578,14 @@
           // ─── Hiển thị avatar ───
           if (avatarContainer) avatarContainer.classList.remove('hidden');
 
-          if (user.avatar && avatarImg) {
-            // Tài khoản Google → hiển thị ảnh
-            avatarImg.src = user.avatar;
+          // Priority: dbAvatar (uploaded) → Google avatar → initials
+          const displayAvatar = user.dbAvatar || user.avatar || null;
+          if (displayAvatar && avatarImg) {
+            avatarImg.src = displayAvatar;
             avatarImg.classList.remove('hidden');
             if (avatarInitials) avatarInitials.classList.add('hidden');
           } else if (avatarInitials) {
-            // Tài khoản thường → hiển thị chữ cái đầu
-            const name = user.displayName || user.username || '?';
+            const name = user.fullname || user.displayName || user.username || '?';
             avatarInitials.textContent = name.charAt(0).toUpperCase();
             avatarInitials.classList.remove('hidden');
             if (avatarImg) avatarImg.classList.add('hidden');
@@ -537,7 +594,7 @@
           // Tooltip khi hover — hiển thị tên
           const nameLabel = document.getElementById('profileNameLabel');
           if (nameLabel) {
-            nameLabel.textContent = user.displayName || user.username;
+            nameLabel.textContent = user.fullname || user.displayName || user.username;
           }
 
           if (user.role === 'admin') {
@@ -547,6 +604,31 @@
           }
           if (loginDropdownBtn)  loginDropdownBtn.classList.add('hidden');
           if (logoutDropdownBtn) logoutDropdownBtn.classList.remove('hidden');
+
+          // Sync profile from server (async, non-blocking)
+          if (user.id && !user._profileLoaded) {
+            fetch(`/api/auth/profile/${user.id}`)
+              .then(r => r.json())
+              .then(data => {
+                if (data.status === 'success') {
+                  const p = data.data;
+                  const updated = Object.assign(user, {
+                    fullname: p.fullname || user.fullname,
+                    phone: p.phone || user.phone,
+                    address: p.address || user.address,
+                    city: p.city || user.city,
+                    _profileLoaded: true
+                  });
+                  localStorage.setItem('nike_user', JSON.stringify(updated));
+                  // Update displayed name if fullname is set
+                  if (p.fullname) {
+                    if (nameLabel) nameLabel.textContent = p.fullname;
+                    if (avatarInitials && !user.avatar) avatarInitials.textContent = p.fullname.charAt(0).toUpperCase();
+                  }
+                }
+              })
+              .catch(() => {});
+          }
         } catch (e) {
           localStorage.removeItem('nike_user');
         }

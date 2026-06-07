@@ -2,6 +2,32 @@ var express = require('express');
 var router = express.Router();
 var mysql = require('mysql2');
 var { sendOTP } = require('../utils/mailer');
+var multer = require('multer');
+var path = require('path');
+var fs = require('fs');
+
+// ─── Multer config for avatar uploads ──────────────────────────────────────
+var avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    var dir = path.join(__dirname, '../public/images/avatars');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    var ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'avatar_' + req.params.id + '_' + Date.now() + ext);
+  }
+});
+var uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: function (req, file, cb) {
+    var allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    var ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Chỉ chấp nhận ảnh JPG, PNG, GIF, WEBP!'));
+  }
+});
 
 var db = mysql.createConnection({
   host: 'localhost',
@@ -310,6 +336,217 @@ router.post('/reset-password', function (req, res) {
       });
     }
   );
+});
+
+// =============================================
+// GET /api/auth/profile/:id  →  Lấy thông tin cá nhân
+// =============================================
+router.get('/profile/:id', function (req, res) {
+  var id = req.params.id;
+  db.query(
+    'SELECT id, username, email, fullname, phone, address, city, avatar, role, created_at FROM users WHERE id = ?',
+    [id],
+    function (error, results) {
+      if (error) return res.status(500).json({ status: 'error', message: error.message });
+      if (results.length === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy người dùng' });
+      res.json({ status: 'success', data: results[0] });
+    }
+  );
+});
+
+// =============================================
+// PUT /api/auth/profile/:id  →  Cập nhật thông tin cá nhân
+// Body: { fullname, phone, address, city }
+// =============================================
+router.put('/profile/:id', function (req, res) {
+  var id = req.params.id;
+  var { fullname, phone, address, city } = req.body;
+
+  if (!fullname || !phone) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng nhập đầy đủ họ tên và số điện thoại!' });
+  }
+
+  db.query(
+    'UPDATE users SET fullname = ?, phone = ?, address = ?, city = ? WHERE id = ?',
+    [fullname, phone, address || null, city || null, id],
+    function (error, results) {
+      if (error) return res.status(500).json({ status: 'error', message: error.message });
+      if (results.affectedRows === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy người dùng' });
+      res.json({ status: 'success', message: 'Cập nhật thông tin thành công!' });
+    }
+  );
+});
+
+// =============================================
+// PUT /api/auth/change-password/:id  →  Đổi mật khẩu
+// Body: { oldPassword, newPassword }
+// =============================================
+router.put('/change-password/:id', function (req, res) {
+  var id = req.params.id;
+  var { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng nhập đầy đủ mật khẩu cũ và mới!' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ status: 'error', message: 'Mật khẩu mới phải ít nhất 6 ký tự!' });
+  }
+
+  // Verify old password first
+  db.query('SELECT id FROM users WHERE id = ? AND password = ?', [id, oldPassword], function (error, results) {
+    if (error) return res.status(500).json({ status: 'error', message: error.message });
+    if (results.length === 0) {
+      return res.status(401).json({ status: 'error', message: 'Mật khẩu hiện tại không đúng!' });
+    }
+
+    db.query('UPDATE users SET password = ? WHERE id = ?', [newPassword, id], function (err2) {
+      if (err2) return res.status(500).json({ status: 'error', message: err2.message });
+      res.json({ status: 'success', message: 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.' });
+    });
+  });
+});
+
+// =============================================
+// POST /api/auth/upload-avatar/:id  →  Upload ảnh đại diện
+// Form: multipart/form-data, field name: "avatar"
+// =============================================
+router.post('/upload-avatar/:id', uploadAvatar.single('avatar'), function (req, res) {
+  var id = req.params.id;
+  if (!req.file) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng chọn file ảnh!' });
+  }
+
+  var avatarUrl = '/images/avatars/' + req.file.filename;
+
+  // Delete old avatar file if exists
+  db.query('SELECT avatar FROM users WHERE id = ?', [id], function (err, rows) {
+    if (!err && rows.length > 0 && rows[0].avatar) {
+      var oldPath = path.join(__dirname, '../public', rows[0].avatar);
+      if (fs.existsSync(oldPath)) {
+        fs.unlink(oldPath, function () {});
+      }
+    }
+
+    // Save new avatar path to DB
+    db.query('UPDATE users SET avatar = ? WHERE id = ?', [avatarUrl, id], function (error) {
+      if (error) return res.status(500).json({ status: 'error', message: error.message });
+      res.json({ status: 'success', message: 'Cập nhật ảnh đại diện thành công!', avatarUrl: avatarUrl });
+    });
+  });
+});
+
+// =============================================
+// SỔ ĐỊA CHỈ (ADDRESS BOOK) API
+// =============================================
+
+// GET /api/auth/users/:id/addresses
+router.get('/users/:id/addresses', function(req, res) {
+  var userId = req.params.id;
+  db.query('SELECT * FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, id DESC', [userId], function(err, results) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', data: results });
+  });
+});
+
+// POST /api/auth/users/:id/addresses
+router.post('/users/:id/addresses', function(req, res) {
+  var userId = req.params.id;
+  var { fullname, phone, province, ward, address, full_address, type, is_default } = req.body;
+
+  if (!fullname || !phone || !full_address) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng điền đủ thông tin bắt buộc' });
+  }
+
+  // Check if user has any addresses to force default on the first one
+  db.query('SELECT COUNT(*) as cnt FROM user_addresses WHERE user_id = ?', [userId], function(err, rows) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    
+    var isDefault = (rows[0].cnt === 0 || is_default) ? 1 : 0;
+
+    var insertAddress = function() {
+      db.query(
+        'INSERT INTO user_addresses (user_id, fullname, phone, province, ward, address, full_address, type, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, fullname, phone, province || null, ward || null, address, full_address, type || 'home', isDefault],
+        function(errIns, results) {
+          if (errIns) return res.status(500).json({ status: 'error', message: errIns.message });
+          res.json({ status: 'success', message: 'Thêm địa chỉ thành công', insertId: results.insertId });
+        }
+      );
+    };
+
+    if (isDefault) {
+      // If setting as default, clear others first
+      db.query('UPDATE user_addresses SET is_default = 0 WHERE user_id = ?', [userId], function(errUpd) {
+        if (errUpd) return res.status(500).json({ status: 'error', message: errUpd.message });
+        insertAddress();
+      });
+    } else {
+      insertAddress();
+    }
+  });
+});
+
+// PUT /api/auth/addresses/:id
+router.put('/addresses/:id', function(req, res) {
+  var id = req.params.id;
+  var { fullname, phone, province, ward, address, full_address, type, is_default, user_id } = req.body;
+
+  if (!fullname || !phone || !full_address) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng điền đủ thông tin bắt buộc' });
+  }
+
+  var updateAddress = function() {
+    db.query(
+      'UPDATE user_addresses SET fullname = ?, phone = ?, province = ?, ward = ?, address = ?, full_address = ?, type = ?, is_default = ? WHERE id = ?',
+      [fullname, phone, province || null, ward || null, address, full_address, type || 'home', is_default ? 1 : 0, id],
+      function(errUpd, results) {
+        if (errUpd) return res.status(500).json({ status: 'error', message: errUpd.message });
+        res.json({ status: 'success', message: 'Cập nhật địa chỉ thành công' });
+      }
+    );
+  };
+
+  if (is_default && user_id) {
+    db.query('UPDATE user_addresses SET is_default = 0 WHERE user_id = ? AND id != ?', [user_id, id], function(errClear) {
+      if (errClear) return res.status(500).json({ status: 'error', message: errClear.message });
+      updateAddress();
+    });
+  } else {
+    updateAddress();
+  }
+});
+
+// DELETE /api/auth/addresses/:id
+router.delete('/addresses/:id', function(req, res) {
+  var id = req.params.id;
+  db.query('DELETE FROM user_addresses WHERE id = ?', [id], function(err, results) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', message: 'Xóa địa chỉ thành công' });
+  });
+});
+
+// PUT /api/auth/addresses/:id/default
+router.put('/addresses/:id/default', function(req, res) {
+  var id = req.params.id;
+  var userId = req.body.user_id;
+
+  if (!userId) return res.status(400).json({ status: 'error', message: 'Thiếu user_id' });
+
+  db.query('UPDATE user_addresses SET is_default = 0 WHERE user_id = ?', [userId], function(err1) {
+    if (err1) return res.status(500).json({ status: 'error', message: err1.message });
+    db.query('UPDATE user_addresses SET is_default = 1 WHERE id = ?', [id], function(err2) {
+      if (err2) return res.status(500).json({ status: 'error', message: err2.message });
+      res.json({ status: 'success', message: 'Thiết lập địa chỉ mặc định thành công' });
+    });
+  });
+});
+
+// Handle multer errors (file type, size)
+router.use(function (err, req, res, next) {
+  if (err instanceof multer.MulterError || err.message) {
+    return res.status(400).json({ status: 'error', message: err.message });
+  }
+  next(err);
 });
 
 module.exports = router;

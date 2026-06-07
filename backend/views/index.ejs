@@ -240,14 +240,14 @@
             
             <div class="absolute bottom-3 left-4 right-4 flex justify-between text-[10px] text-gray-400 font-medium z-10 group-hover:opacity-0 transition-opacity">
               <span><%= product.color %></span>
-              <span><%= (product.sizes && product.sizes !== 'N/A' && product.sizes !== '') ? 'Size: ' + product.sizes : (product.item_type || '') %></span>
+              <span><%= (product.sizes && product.sizes !== 'N/A' && product.sizes !== '') ? 'Size: ' + product.sizes : (translateItemType(product.item_type) || '') %></span>
             </div>
           </div>
 
           <!-- Content Card Info -->
           <div class="p-6 flex-1 flex flex-col justify-between space-y-4 border-t border-gray-50/50">
             <div>
-              <span class="text-[9px] uppercase font-black text-nike-orange bg-orange-50 px-2 py-0.5 rounded-full inline-block"><%= product.category === 'men' ? 'Nam' : product.category === 'women' ? 'Nữ' : 'Trẻ Em' %> &bull; <%= product.item_type %></span>
+              <span class="text-[9px] uppercase font-black text-nike-orange bg-orange-50 px-2 py-0.5 rounded-full inline-block"><%= product.category === 'men' ? 'Nam' : product.category === 'women' ? 'Nữ' : 'Trẻ Em' %> &bull; <%= translateItemType(product.item_type) %></span>
               <a href="/products/<%= product.id %>" class="block font-bold text-gray-800 text-sm hover:text-nike-orange transition-colors truncate mt-2"><%= product.title %></a>
               
               <!-- Ratings -->

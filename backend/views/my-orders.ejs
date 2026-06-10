@@ -63,22 +63,25 @@
         Tất cả <span id="count-all" class="hidden text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
       </button>
       <button onclick="switchTab('pending')" id="tab-pending" class="flex-1 min-w-[110px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
-        Chờ thanh toán <span id="count-pending" class="hidden text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
+        Chờ xác nhận <span id="count-pending" class="hidden text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
       </button>
-      <button onclick="switchTab('processing')" id="tab-processing" class="flex-1 min-w-[90px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
-        Vận chuyển <span id="count-processing" class="hidden text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
+      <button onclick="switchTab('processing')" id="tab-processing" class="flex-1 min-w-[110px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
+        Chờ lấy hàng <span id="count-processing" class="hidden text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
       </button>
       <button onclick="switchTab('shipped')" id="tab-shipped" class="flex-1 min-w-[110px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
         Chờ giao hàng <span id="count-shipped" class="hidden text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
       </button>
       <button onclick="switchTab('delivered')" id="tab-delivered" class="flex-1 min-w-[90px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
-        Hoàn thành <span id="count-delivered" class="hidden text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
+        Đã giao <span id="count-delivered" class="hidden text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
+      </button>
+      <button onclick="switchTab('returned')" id="tab-returned" class="flex-1 min-w-[90px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
+        Trả hàng <span id="count-returned" class="hidden text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
       </button>
       <button onclick="switchTab('cancelled')" id="tab-cancelled" class="flex-1 min-w-[80px] py-4 text-center focus:outline-none hover:text-nike-orange relative whitespace-nowrap transition-colors">
         Đã hủy <span id="count-cancelled" class="hidden text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full ml-1 font-bold">0</span>
       </button>
       <!-- Active Tab Indicator bar is inside the relative flex container, perfectly aligned to coordinates of activeBtn! -->
-      <div id="tab-indicator" class="tab-underline absolute left-0 bottom-0 w-1/6"></div>
+      <div id="tab-indicator" class="tab-underline absolute left-0 bottom-0 w-1/7"></div>
     </div>
   </div>
 
@@ -166,6 +169,91 @@
     </div>
   </div>
 
+  <!-- Order Details Modal (Shopee Style) -->
+  <div id="orderDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <!-- Backdrop overlay -->
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-xs" onclick="closeOrderDetailsModal()"></div>
+    <!-- Box content -->
+    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl relative z-10 border border-gray-100 flex flex-col max-h-[85vh] transform scale-95 transition-transform duration-300 ease-out">
+      <!-- Header -->
+      <div class="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50 rounded-t-3xl">
+        <h3 class="font-extrabold text-base sm:text-lg text-nike-black uppercase tracking-wide flex items-center gap-2">
+          <svg class="w-5 h-5 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Chi Tiết Đơn Hàng <span id="detailModalOrderId" class="text-nike-orange"></span>
+        </h3>
+        <button onclick="closeOrderDetailsModal()" class="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 focus:outline-none">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-200">
+        <!-- Delivery Address -->
+        <div>
+          <h4 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-3">Địa Chỉ Nhận Hàng</h4>
+          <div class="text-sm text-gray-700 leading-relaxed space-y-1">
+            <p class="font-bold text-nike-black" id="detailNamePhone"></p>
+            <p id="detailAddress" class="text-gray-500"></p>
+          </div>
+        </div>
+
+        <!-- Products -->
+        <div>
+          <h4 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-3">Sản Phẩm Đã Mua</h4>
+          <div id="detailProductsList" class="space-y-3">
+            <!-- Items injected by JS -->
+          </div>
+        </div>
+        
+        <!-- Payment Details -->
+        <div>
+          <h4 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-3">Chi Tiết Thanh Toán</h4>
+          <div class="bg-gray-50 rounded-2xl p-4 text-xs sm:text-sm space-y-3 text-gray-600">
+            <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+              <span>Phương thức thanh toán</span>
+              <span class="font-bold text-nike-black uppercase" id="detailPaymentMethod"></span>
+            </div>
+            <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+              <span>Trạng thái thanh toán</span>
+              <span class="font-bold uppercase tracking-wider" id="detailPaymentStatus"></span>
+            </div>
+            <div class="flex justify-between items-center pt-1 text-base">
+              <span class="font-bold text-gray-800">Thành tiền</span>
+              <span class="font-black text-nike-orange text-lg" id="detailTotalAmount"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Return Modal -->
+  <div id="returnModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeReturnModal()"></div>
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden flex flex-col transform transition-all scale-100 opacity-100">
+      <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+        <h3 class="font-black text-xl text-gray-900 tracking-tight">Yêu Cầu Trả Hàng</h3>
+        <button onclick="closeReturnModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 transition-colors">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-6 flex-1 overflow-y-auto">
+        <div class="mb-4">
+          <label class="block text-sm font-bold text-gray-700 mb-2">Vui lòng cung cấp lý do trả hàng chi tiết</label>
+          <textarea id="returnReasonText" rows="4" class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-nike-orange focus:border-transparent transition-shadow" placeholder="Ví dụ: Sản phẩm bị lỗi, sai kích cỡ, không giống hình..."></textarea>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
+        <button onclick="closeReturnModal()" class="flex-1 py-3 px-4 rounded-xl font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
+          Hủy Bỏ
+        </button>
+        <button onclick="submitReturnRequest()" id="btnSubmitReturn" class="flex-1 py-3 px-4 rounded-xl font-black text-white bg-nike-orange border border-nike-orange shadow-md hover:bg-orange-600 transition-all glow-orange flex items-center justify-center gap-2">
+          <span>Gửi Yêu Cầu</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Page Business Logic -->
   <script>
     // State management
@@ -178,9 +266,6 @@
     function formatPriceJs(number) {
       let cleanVal = parseFloat(String(number).replace(/[^0-9.-]+/g, ""));
       if (isNaN(cleanVal)) return number;
-      if (cleanVal < 100000) {
-        cleanVal = cleanVal * 1000;
-      }
       return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cleanVal);
     }
 
@@ -219,6 +304,71 @@
       setTimeout(() => {
         modal.classList.add('hidden');
         currentCancelOrderId = null;
+      }, 150);
+    }
+
+    // Order Details Modal Logic
+    function openOrderDetails(orderId) {
+      const order = allOrdersData.find(o => o.id === orderId);
+      if(!order) return;
+
+      document.getElementById('detailModalOrderId').textContent = `#${order.id}`;
+      document.getElementById('detailNamePhone').textContent = `${order.fullname} | ${order.phone}`;
+      document.getElementById('detailAddress').textContent = order.address;
+      
+      let methodText = 'Thu tiền mặt (COD)';
+      if (order.payment_method && order.payment_method.toLowerCase() === 'vpbank') methodText = 'Chuyển khoản VPBank';
+      else if (order.payment_method && order.payment_method.toLowerCase().includes('vnpay')) methodText = 'Thanh toán VNPay';
+      document.getElementById('detailPaymentMethod').textContent = methodText;
+
+      let paymentStatusText = 'Chưa thanh toán';
+      if (order.payment_status === 'paid') paymentStatusText = 'Đã thanh toán';
+      else if (order.payment_status === 'refunded') paymentStatusText = 'Đã hoàn tiền';
+      else if (order.payment_status === 'failed') paymentStatusText = 'Thanh toán thất bại';
+      document.getElementById('detailPaymentStatus').textContent = paymentStatusText;
+
+      document.getElementById('detailTotalAmount').textContent = formatPriceJs(order.total_amount);
+
+      // Build Items
+      let itemsHtml = '';
+      order.items.forEach(item => {
+        itemsHtml += `
+          <div class="flex gap-4 items-center p-3 border border-gray-100 rounded-2xl bg-white shadow-sm hover:border-nike-orange/30 transition-colors">
+            <div class="w-16 h-16 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center p-2 flex-shrink-0">
+              <img src="${item.image}" alt="${item.title}" class="w-full h-auto object-contain" onerror="this.src='/nike.png'">
+            </div>
+            <div class="flex-grow min-w-0">
+              <a href="/products/${item.product_id}" class="block font-black text-sm text-gray-800 hover:text-nike-orange truncate uppercase">${item.title}</a>
+              <div class="flex gap-3 text-xs text-gray-400 mt-1 font-bold">
+                <span>Size: <strong class="text-nike-black">${item.size}</strong></span>
+                <span>Màu: <strong class="text-nike-black">${item.color}</strong></span>
+              </div>
+            </div>
+            <div class="flex flex-col items-end flex-shrink-0 space-y-1">
+              <span class="font-extrabold text-sm text-nike-black">${formatPriceJs(item.price)}</span>
+              <span class="text-xs text-gray-400 font-bold">x${item.quantity}</span>
+            </div>
+          </div>
+        `;
+      });
+      document.getElementById('detailProductsList').innerHTML = itemsHtml;
+
+      const modal = document.getElementById('orderDetailsModal');
+      const box = modal.querySelector('.transform');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        box.classList.remove('scale-95');
+        box.classList.add('scale-100');
+      }, 50);
+    }
+
+    function closeOrderDetailsModal() {
+      const modal = document.getElementById('orderDetailsModal');
+      const box = modal.querySelector('.transform');
+      box.classList.remove('scale-100');
+      box.classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
       }, 150);
     }
 
@@ -278,7 +428,7 @@
 
     // Count badges calculation
     function updateTabCounts() {
-      const tabs = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      const tabs = ['all', 'pending', 'processing', 'shipped', 'delivered', 'returned', 'cancelled'];
       
       tabs.forEach(tab => {
         const countBadge = document.getElementById(`count-${tab}`);
@@ -286,6 +436,12 @@
         
         if (tab === 'all') {
           count = allOrdersData.length;
+        } else if (tab === 'pending') {
+          count = allOrdersData.filter(o => o.status === 'pending_payment').length;
+        } else if (tab === 'processing') {
+          count = allOrdersData.filter(o => o.status === 'pending' || o.status === 'processing').length;
+        } else if (tab === 'returned') {
+          count = allOrdersData.filter(o => o.status === 'returned' || o.status === 'returning').length;
         } else {
           count = allOrdersData.filter(o => o.status === tab).length;
         }
@@ -304,7 +460,7 @@
       currentTab = tabId;
       
       // Update Tab Style
-      const tabs = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      const tabs = ['all', 'pending', 'processing', 'shipped', 'delivered', 'returned', 'cancelled'];
       tabs.forEach(t => {
         const btn = document.getElementById(`tab-${t}`);
         if (t === tabId) {
@@ -343,7 +499,15 @@
       // 1. Filter by Tab Status
       let filtered = allOrdersData;
       if (currentTab !== 'all') {
-        filtered = filtered.filter(o => o.status === currentTab);
+        if (currentTab === 'pending') {
+          filtered = filtered.filter(o => o.status === 'pending_payment');
+        } else if (currentTab === 'processing') {
+          filtered = filtered.filter(o => o.status === 'pending' || o.status === 'processing');
+        } else if (currentTab === 'returned') {
+          filtered = filtered.filter(o => o.status === 'returned' || o.status === 'returning');
+        } else {
+          filtered = filtered.filter(o => o.status === currentTab);
+        }
       }
 
       // 2. Filter by Search Query (Order ID or Product names)
@@ -383,30 +547,43 @@
           let statusText = 'Chờ duyệt';
           let statusClass = 'bg-amber-500/10 text-amber-500 border border-amber-200/30';
 
-          if (order.status === 'processing') {
-            statusText = 'Đang soạn hàng';
+          if (order.status === 'pending_payment') {
+            statusText = 'Chờ xác nhận (VNPay)';
+            statusClass = 'bg-amber-500/10 text-amber-600 border border-amber-200/30';
+          } else if (order.status === 'pending') {
+            statusText = 'Chờ lấy hàng';
+            statusClass = 'bg-blue-500/10 text-blue-500 border border-blue-200/30';
+          } else if (order.status === 'processing') {
+            statusText = 'Đang đóng gói';
             statusClass = 'bg-blue-500/10 text-blue-500 border border-blue-200/30';
           } else if (order.status === 'shipped') {
-            statusText = 'Đang giao hàng';
+            statusText = 'Chờ giao hàng';
             statusClass = 'bg-indigo-500/10 text-indigo-500 border border-indigo-200/30';
           } else if (order.status === 'delivered') {
-            statusText = 'Giao hàng thành công';
+            statusText = 'Đã giao';
             statusClass = 'bg-green-500/10 text-green-500 border border-green-200/30';
+          } else if (order.status === 'returned') {
+            statusText = 'Đã Hoàn Tiền';
+            statusClass = 'bg-purple-500/10 text-purple-500 border border-purple-200/30';
+          } else if (order.status === 'returning') {
+            statusText = 'Yêu Cầu Trả Hàng';
+            statusClass = 'bg-purple-500/10 text-purple-500 border border-purple-200/30';
           } else if (order.status === 'cancelled') {
-            statusText = 'Đã hủy đơn';
+            statusText = 'Đã hủy';
             statusClass = 'bg-red-500/10 text-red-500 border border-red-200/30';
           }
 
-          // Build Items Html
+          // Build Items Html (Show only first item like Shopee, or max 2)
           let itemsHtml = '';
-          order.items.forEach(item => {
+          const displayItems = order.items.slice(0, 1); // Shopee usually shows 1 item in the outer list
+          displayItems.forEach(item => {
             itemsHtml += `
               <div class="flex gap-4 items-center py-4 border-b border-gray-50 last:border-b-0">
                 <div class="w-14 h-14 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center p-2 flex-shrink-0">
                   <img src="${item.image}" alt="${item.title}" class="w-full h-auto object-contain transform hover:scale-110 transition-transform duration-300" onerror="this.src='/nike.png'">
                 </div>
                 <div class="flex-grow min-w-0">
-                  <a href="/products/${item.product_id}" class="block font-black text-xs sm:text-sm text-gray-800 hover:text-nike-orange transition-colors truncate uppercase">${item.title}</a>
+                  <span class="block font-black text-xs sm:text-sm text-gray-800 hover:text-nike-orange transition-colors truncate uppercase">${item.title}</span>
                   <div class="flex gap-4 text-[10px] text-gray-400 mt-1.5 font-bold">
                     <span>Kích cỡ: <strong class="text-nike-black">${item.size}</strong></span>
                     <span>Màu: <strong class="text-nike-black">${item.color}</strong></span>
@@ -422,7 +599,17 @@
           let actionButtons = '';
           const isVpbankPending = order.payment_method && order.payment_method.toLowerCase() === 'vpbank' && order.payment_status !== 'paid';
 
-          if (order.status === 'pending' || order.status === 'processing') {
+          if (order.status === 'pending_payment') {
+            actionButtons = `
+              <button onclick="repayOrder(${order.id})" class="bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800 text-white font-bold px-5 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all shadow-md focus:outline-none flex items-center gap-1.5 glow-pink">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                Thanh toán ngay
+              </button>
+              <button onclick="openConfirmModal(${order.id})" class="border border-red-200 hover:bg-red-50 text-red-500 font-bold px-5 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all focus:outline-none">
+                Hủy Đơn Hàng
+              </button>
+            `;
+          } else if (order.status === 'pending' || order.status === 'processing') {
             actionButtons = `
               ${isVpbankPending ? `
               <a href="https://go.vpbank.com.vn/nAWi43Y" target="_blank" rel="noopener"
@@ -434,8 +621,33 @@
                 Hủy Đơn Hàng
               </button>
             `;
-          } else if (order.status === 'delivered') {
+          } else if (order.status === 'shipped') {
             actionButtons = `
+              <button onclick="updateOrderStatus(${order.id}, 'delivered')" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-6 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all shadow-md focus:outline-none">
+                Đã Nhận Hàng
+              </button>
+            `;
+          } else if (order.status === 'delivered') {
+            let returnBtn = '';
+            if (order.delivered_at) {
+              const diffDays = (Date.now() - new Date(order.delivered_at).getTime()) / (1000 * 60 * 60 * 24);
+              if (diffDays <= 15) {
+                returnBtn = `
+                  <button onclick="openReturnModal(${order.id})" class="border border-purple-300 text-purple-600 hover:bg-purple-50 font-bold px-6 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all focus:outline-none">
+                    Yêu Cầu Trả Hàng
+                  </button>`;
+              } else {
+                returnBtn = `<span class="text-[10px] text-gray-400 font-bold px-4 py-2 border border-gray-200 rounded-full bg-gray-50">Đã quá hạn trả hàng</span>`;
+              }
+            } else {
+              returnBtn = `
+                  <button onclick="openReturnModal(${order.id})" class="border border-purple-300 text-purple-600 hover:bg-purple-50 font-bold px-6 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all focus:outline-none">
+                    Yêu Cầu Trả Hàng
+                  </button>`;
+            }
+
+            actionButtons = `
+              ${returnBtn}
               <button onclick="rebuyOrder(${order.id})" class="bg-nike-orange text-white hover:bg-white hover:text-nike-orange border border-nike-orange font-bold px-6 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all shadow-md focus:outline-none glow-orange">
                 Mua Lại
               </button>
@@ -443,7 +655,11 @@
                 Viết Đánh Giá
               </button>
             `;
-          } else if (order.status === 'cancelled') {
+          } else if (order.status === 'returning') {
+            actionButtons = `
+              <span class="text-xs font-bold text-purple-500 bg-purple-50 px-4 py-2 rounded-full border border-purple-200">Đang chờ xử lý trả hàng</span>
+            `;
+          } else if (order.status === 'cancelled' || order.status === 'returned') {
             actionButtons = `
               <button onclick="rebuyOrder(${order.id})" class="bg-nike-black text-white hover:bg-nike-orange font-bold px-6 py-2.5 rounded-full text-2xs sm:text-xs uppercase tracking-widest transition-all shadow-md focus:outline-none">
                 Mua Lại
@@ -468,20 +684,23 @@
                   <span class="px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${statusClass}">
                     ${statusText}
                   </span>
-                  ${(order.payment_method && order.payment_method.toLowerCase() === 'vpbank') ? `
-                    ${order.payment_status === 'paid'
+                  ${(order.payment_method && (order.payment_method.toLowerCase() === 'vpbank' || order.payment_method.toLowerCase().startsWith('vnpay'))) ? `
+                  ${order.payment_status === 'paid'
                       ? '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">✅ Đã thanh toán</span>'
-                      : order.payment_status === 'failed'
-                        ? '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-red-100 text-red-700">❌ Thanh toán thất bại</span>'
-                        : '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">⏳ Chờ xác nhận TT</span>'
+                      : order.payment_status === 'refunded'
+                        ? '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-purple-100 text-purple-700 border border-purple-200">💸 Đã hoàn tiền</span>'
+                        : order.payment_status === 'failed'
+                          ? '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-red-100 text-red-700">❌ Thanh toán thất bại</span>'
+                          : '<span class="px-2.5 py-1 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">⏳ Chờ xác nhận TT</span>'
                     }
                   ` : ''}
                 </div>
               </div>
 
-              <!-- Card Items -->
-              <div class="space-y-1">
+              <!-- Card Items (Shopee Style: Click to view details) -->
+              <div class="space-y-1 cursor-pointer hover:bg-gray-50 rounded-2xl p-2 -mx-2 transition-colors" onclick="openOrderDetails(${order.id})">
                 ${itemsHtml}
+                ${order.items.length > 1 ? `<div class="text-center pt-2"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Xem thêm ${order.items.length - 1} sản phẩm...</span></div>` : ''}
               </div>
 
               <!-- Card Footer -->
@@ -508,6 +727,96 @@
           `;
           listContainer.insertAdjacentHTML('beforeend', cardHtml);
         });
+      }
+    }
+
+    // General Update Order Status Handler
+    async function updateOrderStatus(orderId, newStatus) {
+      
+      try {
+        const response = await fetch(`/api/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        
+        const result = await response.json();
+        if (result.status === 'success') {
+          showToast(`Đã cập nhật trạng thái đơn hàng #${orderId} thành công!`);
+          const target = allOrdersData.find(o => o.id === orderId);
+          if (target) {
+            target.status = newStatus;
+          }
+          updateTabCounts();
+          filterAndRenderOrders();
+        } else {
+          showToast(result.message || 'Lỗi cập nhật trạng thái');
+        }
+      } catch (err) {
+        showToast('Lỗi đường truyền internet');
+      }
+    }
+    // Return Modal Logic
+    let currentReturnOrderId = null;
+    function openReturnModal(orderId) {
+      currentReturnOrderId = orderId;
+      document.getElementById('returnReasonText').value = '';
+      const modal = document.getElementById('returnModal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.children[1].classList.remove('scale-95', 'opacity-0', 'translate-y-4');
+        modal.children[1].classList.add('scale-100', 'opacity-100', 'translate-y-0');
+      }, 10);
+    }
+
+    function closeReturnModal() {
+      const modal = document.getElementById('returnModal');
+      modal.children[1].classList.remove('scale-100', 'opacity-100', 'translate-y-0');
+      modal.children[1].classList.add('scale-95', 'opacity-0', 'translate-y-4');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        currentReturnOrderId = null;
+      }, 200);
+    }
+
+    async function submitReturnRequest() {
+      if (!currentReturnOrderId) return;
+      const reason = document.getElementById('returnReasonText').value.trim();
+      if (!reason) {
+        showToast('Vui lòng điền lý do trả hàng');
+        return;
+      }
+      
+      const btn = document.getElementById('btnSubmitReturn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+      
+      try {
+        const response = await fetch(`/api/orders/${currentReturnOrderId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'returning', return_reason: reason })
+        });
+        
+        const result = await response.json();
+        if (result.status === 'success') {
+          showToast(`Đã gửi yêu cầu trả hàng thành công!`);
+          const target = allOrdersData.find(o => o.id === currentReturnOrderId);
+          if (target) {
+            target.status = 'returning';
+            target.return_reason = reason;
+          }
+          updateTabCounts();
+          filterAndRenderOrders();
+          closeReturnModal();
+        } else {
+          showToast(result.message || 'Lỗi gửi yêu cầu trả hàng');
+        }
+      } catch (err) {
+        showToast('Lỗi đường truyền internet');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Gửi Yêu Cầu</span>';
       }
     }
 
@@ -570,6 +879,25 @@
         setTimeout(() => {
           openCart();
         }, 300);
+      }
+    }
+
+    // Repay Order via VNPay
+    async function repayOrder(orderId) {
+      showToast('Đang kết nối cổng thanh toán VNPay...');
+      try {
+        const response = await fetch(`/api/orders/${orderId}/repay`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.status === 'success' && result.payUrl) {
+          window.location.href = result.payUrl;
+        } else {
+          showToast(result.message || 'Lỗi không thể tạo lại giao dịch.');
+        }
+      } catch (e) {
+        showToast('Không thể kết nối máy chủ.');
       }
     }
 

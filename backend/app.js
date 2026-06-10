@@ -12,6 +12,8 @@ var apiRouter = require('./routes/api');
 var authRouter = require('./routes/auth');
 var ordersRouter = require('./routes/orders');
 var chatRouter = require('./routes/chat');
+var livechatRouter = require('./routes/livechat');
+var analyticsRouter = require('./routes/analytics');
 
 var app = express();
 
@@ -59,6 +61,8 @@ app.use('/api', apiRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/livechat', livechatRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // 404 handler
 app.use(function (req, res, next) {

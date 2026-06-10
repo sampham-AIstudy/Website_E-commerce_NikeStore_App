@@ -65,20 +65,16 @@ var upload = multer({ storage: storage });
 // =============================================
 // KẾT NỐI MySQL (XAMPP mặc định)
 // =============================================
-var db = mysql.createConnection({
+var db = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'nike_store'
+  database: 'nike_store',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
-
-db.connect(function (err) {
-  if (err) {
-    console.error('❌ Lỗi kết nối MySQL:', err.stack);
-    return;
-  }
-  console.log('✅ Đã kết nối thành công đến MySQL: nike_store');
-});
+console.log('✅ API Router đã khởi tạo MySQL Pool');
 
 // =============================================
 // Kiểm tra các cột DB đang có (tự thích ứng)
@@ -290,60 +286,107 @@ router.post('/vouchers/apply', function (req, res) {
   var code = req.body.code;
   var userId = req.body.user_id;
   var orderTotal = parseFloat(req.body.order_total) || 0;
+  var cartItems = req.body.cart_items || req.body.cartItems || [];
 
   if (!code || !userId) {
     return res.status(400).json({ status: 'error', message: 'Thiếu mã voucher hoặc bạn chưa đăng nhập' });
   }
 
-  // 1. Kiểm tra voucher tồn tại, còn hạn, còn lượt
+  // 1. Kiểm tra voucher tồn tại, hoạt động
   db.query('SELECT * FROM vouchers WHERE code = ? AND is_active = 1', [code], function(err, vRes) {
     if (err) return res.status(500).json({ status: 'error', message: err.message });
     if (vRes.length === 0) return res.status(404).json({ status: 'error', message: 'Mã giảm giá không tồn tại hoặc không còn hiệu lực' });
     
     var voucher = vRes[0];
+    var now = new Date();
     
-    // Check expiry
-    if (new Date(voucher.expires_at) < new Date()) {
+    // Check start_date
+    if (voucher.start_date && new Date(voucher.start_date) > now) {
+      return res.status(400).json({ status: 'error', message: 'Mã giảm giá chưa đến thời gian áp dụng' });
+    }
+    // Check expires_at
+    if (new Date(voucher.expires_at) < now) {
       return res.status(400).json({ status: 'error', message: 'Mã giảm giá đã hết hạn' });
     }
     // Check limit
     if (voucher.used_count >= voucher.usage_limit) {
       return res.status(400).json({ status: 'error', message: 'Mã giảm giá đã hết lượt sử dụng' });
     }
-    // Check min order value
-    if (orderTotal < voucher.min_order_value) {
-      return res.status(400).json({ status: 'error', message: 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã này' });
-    }
 
-    // 2. Kiểm tra user đã dùng chưa
-    db.query('SELECT id FROM user_vouchers WHERE user_id = ? AND voucher_id = ?', [userId, voucher.id], function(err2, uvRes) {
-      if (err2) return res.status(500).json({ status: 'error', message: err2.message });
-      if (uvRes.length > 0) {
-        return res.status(400).json({ status: 'error', message: 'Bạn đã sử dụng mã giảm giá này rồi, mỗi người chỉ được dùng 1 lần' });
-      }
-
-      // 3. Tính toán số tiền được giảm
-      var discountAmount = 0;
-      if (voucher.discount_type === 'percent') {
-        discountAmount = (orderTotal * voucher.discount_value) / 100;
-        if (voucher.max_discount && discountAmount > voucher.max_discount) {
-          discountAmount = voucher.max_discount;
+    // 2. Kiểm tra giới hạn dùng của User (limit_per_user)
+    db.query(
+      'SELECT COUNT(*) AS used_count FROM user_vouchers WHERE user_id = ? AND voucher_id = ? AND is_used = 1',
+      [userId, voucher.id],
+      function(err2, uvRes) {
+        if (err2) return res.status(500).json({ status: 'error', message: err2.message });
+        
+        var userUsedCount = uvRes[0] ? uvRes[0].used_count : 0;
+        if (userUsedCount >= voucher.limit_per_user) {
+          return res.status(400).json({ 
+            status: 'error', 
+            message: `Bạn đã đạt giới hạn sử dụng mã này (Tối đa ${voucher.limit_per_user} lần/người dùng)` 
+          });
         }
-      } else {
-        discountAmount = voucher.discount_value;
-      }
-      
-      // Không được giảm quá tổng tiền
-      if (discountAmount > orderTotal) discountAmount = orderTotal;
 
-      res.json({ 
-        status: 'success', 
-        message: 'Áp dụng mã giảm giá thành công',
-        discount: discountAmount,
-        voucher_id: voucher.id,
-        voucher_code: voucher.code
-      });
-    });
+        // 3. Kiểm duyệt phạm vi áp dụng (apply_scope) & Tính giá trị hợp lệ
+        var eligibleTotal = orderTotal;
+        
+        if (voucher.apply_scope !== 'all' && cartItems && cartItems.length > 0) {
+          var eligibleSubtotal = 0;
+          cartItems.forEach(function (item) {
+            var isEligible = true;
+            if (voucher.apply_scope === 'exclude_outlet') {
+              isEligible = (!item.discount_percent || parseInt(item.discount_percent) === 0);
+            } else if (voucher.apply_scope === 'category') {
+              var allowed = (voucher.scope_value || '').toLowerCase().split(',').map(function (s) { return s.trim(); });
+              var itemCat = (item.category || '').toLowerCase();
+              var itemType = (item.item_type || '').toLowerCase();
+              isEligible = allowed.includes(itemCat) || allowed.includes(itemType);
+            }
+            
+            if (isEligible) {
+              eligibleSubtotal += parseFloat(item.price) * (parseInt(item.cartQuantity || item.quantity) || 1);
+            }
+          });
+          
+          eligibleTotal = eligibleSubtotal * 1.10; // Đã bao gồm thuế 10%
+        }
+
+        if (voucher.apply_scope !== 'all' && eligibleTotal <= 0) {
+          return res.status(400).json({ status: 'error', message: 'Mã giảm giá không áp dụng cho bất kỳ sản phẩm nào trong giỏ hàng của bạn' });
+        }
+
+        // Check min order value
+        if (eligibleTotal < voucher.min_order_value) {
+          return res.status(400).json({ 
+            status: 'error', 
+            message: `Giá trị sản phẩm hợp lệ (${eligibleTotal.toFixed(0)}k) chưa đạt giá trị đơn hàng tối thiểu (${voucher.min_order_value.toFixed(0)}k)` 
+          });
+        }
+
+        // 4. Tính toán số tiền được giảm
+        var discountAmount = 0;
+        if (voucher.discount_type === 'percent') {
+          discountAmount = (eligibleTotal * voucher.discount_value) / 100;
+          if (voucher.max_discount && discountAmount > voucher.max_discount) {
+            discountAmount = voucher.max_discount;
+          }
+        } else {
+          discountAmount = voucher.discount_value;
+        }
+        
+        // Không được giảm quá tổng tiền
+        if (discountAmount > orderTotal) discountAmount = orderTotal;
+
+        res.json({ 
+          status: 'success', 
+          message: 'Áp dụng mã giảm giá thành công',
+          discount: discountAmount,
+          voucher_id: voucher.id,
+          voucher_code: voucher.code
+        });
+      }
+    );
   });
 });
 
@@ -418,21 +461,33 @@ router.post('/admin/vouchers', function (req, res) {
   if (!data.code || !data.discount_value || !data.expires_at) {
     return res.status(400).json({ status: 'error', message: 'Vui lòng điền đủ thông tin bắt buộc' });
   }
+  if (parseFloat(data.discount_value) < 0) {
+    return res.status(400).json({ status: 'error', message: 'Giá trị giảm không được âm' });
+  }
+  if (data.start_date && new Date(data.expires_at) < new Date(data.start_date)) {
+    return res.status(400).json({ status: 'error', message: 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu' });
+  }
 
   var sql = `
     INSERT INTO vouchers 
-    (code, category, discount_type, discount_value, min_order_value, max_discount, usage_limit, expires_at, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (code, name, description, category, discount_type, discount_value, min_order_value, max_discount, start_date, expires_at, usage_limit, limit_per_user, apply_scope, scope_value, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   var params = [
     data.code,
+    data.name || data.code,
+    data.description || null,
     data.category || 'product',
     data.discount_type || 'percent',
     data.discount_value,
     data.min_order_value || 0,
     data.max_discount || null,
-    data.usage_limit || 100,
+    data.start_date || null,
     data.expires_at,
+    data.usage_limit || 100,
+    data.limit_per_user || 1,
+    data.apply_scope || 'all',
+    data.scope_value || null,
     data.is_active !== undefined ? data.is_active : 1
   ];
 
@@ -450,20 +505,33 @@ router.put('/admin/vouchers/:id', function (req, res) {
   var id = req.params.id;
   var data = req.body;
 
+  if (parseFloat(data.discount_value) < 0) {
+    return res.status(400).json({ status: 'error', message: 'Giá trị giảm không được âm' });
+  }
+  if (data.start_date && new Date(data.expires_at) < new Date(data.start_date)) {
+    return res.status(400).json({ status: 'error', message: 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu' });
+  }
+
   var sql = `
     UPDATE vouchers 
-    SET code=?, category=?, discount_type=?, discount_value=?, min_order_value=?, max_discount=?, usage_limit=?, expires_at=?, is_active=?
+    SET code=?, name=?, description=?, category=?, discount_type=?, discount_value=?, min_order_value=?, max_discount=?, start_date=?, expires_at=?, usage_limit=?, limit_per_user=?, apply_scope=?, scope_value=?, is_active=?
     WHERE id=?
   `;
   var params = [
     data.code,
+    data.name || data.code,
+    data.description || null,
     data.category || 'product',
     data.discount_type || 'percent',
     data.discount_value,
     data.min_order_value || 0,
     data.max_discount || null,
-    data.usage_limit || 100,
+    data.start_date || null,
     data.expires_at,
+    data.usage_limit || 100,
+    data.limit_per_user || 1,
+    data.apply_scope || 'all',
+    data.scope_value || null,
     data.is_active !== undefined ? data.is_active : 1,
     id
   ];
@@ -477,13 +545,210 @@ router.put('/admin/vouchers/:id', function (req, res) {
   });
 });
 
+// =============================================
+// GET /api/admin/stats  →  Thống kê toàn bộ hệ thống cho Admin
+// =============================================
+router.get('/admin/stats', function (req, res) {
+  var stats = {};
+  var queries = [
+
+    // 1. Tổng doanh thu & số đơn (theo trạng thái)
+    function (cb) {
+      db.query(`
+        SELECT
+          COUNT(*) AS total_orders,
+          SUM(CASE WHEN status NOT IN ('cancelled','pending_payment') THEN total_amount ELSE 0 END) AS gross_revenue,
+          SUM(CASE WHEN status = 'delivered' THEN total_amount ELSE 0 END) AS confirmed_revenue,
+          SUM(CASE WHEN status = 'pending'     THEN 1 ELSE 0 END) AS pending_count,
+          SUM(CASE WHEN status = 'processing'  THEN 1 ELSE 0 END) AS processing_count,
+          SUM(CASE WHEN status = 'shipped'     THEN 1 ELSE 0 END) AS shipped_count,
+          SUM(CASE WHEN status = 'delivered'   THEN 1 ELSE 0 END) AS delivered_count,
+          SUM(CASE WHEN status = 'cancelled'   THEN 1 ELSE 0 END) AS cancelled_count,
+          SUM(CASE WHEN status = 'pending_payment' THEN 1 ELSE 0 END) AS pending_payment_count,
+          SUM(CASE WHEN payment_method = 'vnpay' AND payment_status = 'paid' THEN total_amount ELSE 0 END) AS vnpay_revenue,
+          SUM(CASE WHEN payment_method = 'vpbank' AND payment_status = 'paid' THEN total_amount ELSE 0 END) AS vpbank_revenue,
+          SUM(CASE WHEN payment_method = 'cod' THEN total_amount ELSE 0 END) AS cod_revenue
+        FROM orders
+      `, function (err, rows) {
+        if (!err && rows[0]) stats.overview = rows[0];
+        cb();
+      });
+    },
+
+    // 2. Doanh thu theo ngày (30 ngày gần nhất)
+    function (cb) {
+      db.query(`
+        SELECT
+          DATE(created_at) AS date,
+          COUNT(*) AS order_count,
+          SUM(CASE WHEN status NOT IN ('cancelled','pending_payment') THEN total_amount ELSE 0 END) AS revenue
+        FROM orders
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      `, function (err, rows) {
+        stats.daily = err ? [] : rows;
+        cb();
+      });
+    },
+
+    // 3. Top 10 sản phẩm bán chạy nhất (theo số lượng đã bán, đơn không bị hủy)
+    function (cb) {
+      db.query(`
+        SELECT
+          p.id, p.title, p.image, p.price, p.stock, p.category, p.item_type,
+          SUM(oi.quantity) AS total_sold,
+          SUM(oi.quantity * oi.price) AS total_revenue,
+          AVG(p.rating) AS avg_rating
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.status NOT IN ('cancelled', 'pending_payment')
+        GROUP BY p.id
+        ORDER BY total_sold DESC
+        LIMIT 10
+      `, function (err, rows) {
+        stats.topProducts = err ? [] : rows;
+        cb();
+      });
+    },
+
+    // 4. Sản phẩm sắp hết hàng (stock < 20)
+    function (cb) {
+      db.query(`
+        SELECT id, title, image, stock, item_type, category, price
+        FROM products
+        WHERE stock < 20
+        ORDER BY stock ASC
+        LIMIT 20
+      `, function (err, rows) {
+        stats.lowStock = err ? [] : rows;
+        cb();
+      });
+    },
+
+    // 5. Sản phẩm bán chậm nhất (đã đặt lên nhưng chưa bán được hoặc bán rất ít)
+    function (cb) {
+      db.query(`
+        SELECT
+          p.id, p.title, p.image, p.price, p.stock, p.item_type, p.category,
+          COALESCE(SUM(oi.quantity), 0) AS total_sold
+        FROM products p
+        LEFT JOIN order_items oi ON oi.product_id = p.id
+        LEFT JOIN orders o ON oi.order_id = o.id AND o.status NOT IN ('cancelled','pending_payment')
+        WHERE p.stock > 0
+        GROUP BY p.id
+        ORDER BY total_sold ASC, p.stock DESC
+        LIMIT 10
+      `, function (err, rows) {
+        stats.slowProducts = err ? [] : rows;
+        cb();
+      });
+    },
+
+    // 6. Phân bổ doanh thu theo loại sản phẩm (item_type)
+    function (cb) {
+      db.query(`
+        SELECT
+          p.item_type,
+          COUNT(DISTINCT oi.order_id) AS order_count,
+          SUM(oi.quantity) AS units_sold,
+          SUM(oi.quantity * oi.price) AS revenue
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.status NOT IN ('cancelled','pending_payment')
+        GROUP BY p.item_type
+        ORDER BY revenue DESC
+      `, function (err, rows) {
+        stats.byCategory = err ? [] : rows;
+        cb();
+      });
+    },
+
+    // 7. Phân bổ phương thức thanh toán
+    function (cb) {
+      db.query(`
+        SELECT
+          payment_method,
+          COUNT(*) AS count,
+          SUM(CASE WHEN status NOT IN ('cancelled','pending_payment') THEN total_amount ELSE 0 END) AS revenue
+        FROM orders
+        GROUP BY payment_method
+      `, function (err, rows) {
+        stats.paymentMethods = err ? [] : rows;
+        cb();
+      });
+    },
+
+    // 8. Khách hàng mua nhiều nhất
+    function (cb) {
+      db.query(`
+        SELECT
+          u.id, u.username,
+          COUNT(o.id) AS order_count,
+          SUM(o.total_amount) AS total_spent
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.status NOT IN ('cancelled','pending_payment')
+        GROUP BY u.id
+        ORDER BY total_spent DESC
+        LIMIT 5
+      `, function (err, rows) {
+        stats.topCustomers = err ? [] : rows;
+        cb();
+      });
+    },
+
+  ];
+
+  // Chạy tất cả queries song song
+  var done = 0;
+  var total = queries.length;
+  queries.forEach(function (q) {
+    q(function () {
+      done++;
+      if (done === total) {
+        res.json({ status: 'success', stats: stats });
+      }
+    });
+  });
+});
+
 // DELETE /api/admin/vouchers/:id  →  Xóa cứng
 router.delete('/admin/vouchers/:id', function (req, res) {
   var id = req.params.id;
-  // Bảng user_vouchers đã có ON DELETE CASCADE nên xóa an toàn
-  db.query('DELETE FROM vouchers WHERE id = ?', [id], function(err, result) {
+  db.query('DELETE FROM vouchers WHERE id = ?', [id], function (err, result) {
     if (err) return res.status(500).json({ status: 'error', message: err.message });
-    res.json({ status: 'success', message: 'Xóa voucher thành công' });
+    res.json({ status: 'success', message: 'Xóa mã giảm giá thành công' });
+  });
+});
+
+// POST /api/admin/vouchers/bulk  →  Thao tác hàng loạt
+router.post('/admin/vouchers/bulk', function (req, res) {
+  var action = req.body.action; // 'activate', 'deactivate', 'delete'
+  var ids = req.body.ids;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ status: 'error', message: 'Danh sách ID không hợp lệ' });
+  }
+
+  var sql = '';
+  var params = [ids];
+
+  if (action === 'activate') {
+    sql = 'UPDATE vouchers SET is_active = 1 WHERE id IN (?)';
+  } else if (action === 'deactivate') {
+    sql = 'UPDATE vouchers SET is_active = 0 WHERE id IN (?)';
+  } else if (action === 'delete') {
+    sql = 'DELETE FROM vouchers WHERE id IN (?)';
+  } else {
+    return res.status(400).json({ status: 'error', message: 'Hành động không hợp lệ' });
+  }
+
+  db.query(sql, params, function (err, result) {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', message: 'Thao tác hàng loạt thành công', affectedRows: result.affectedRows });
   });
 });
 

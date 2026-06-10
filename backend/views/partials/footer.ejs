@@ -225,6 +225,8 @@
           price: numPrice,
           image: product.image,
           category: product.category,
+          item_type: product.item_type || 'shoes',
+          discount_percent: product.discount_percent || 0,
           size: size,
           color: color,
           cartQuantity: quantity,
@@ -434,20 +436,8 @@
     // Helper: format price
     function formatPrice(number) {
       // In the database, price is saved like "2500" or similar representing USD/VND.
-      // Let's assume if price is under 50000, it represents USD, so let's multiply by 25000 to display in VND, or display as-is if it's already in millions.
-      // Looking at products dump: 
-      // 1. Nike Addapt BB 2.0: price '20000000000' (VND or typo)
-      // 2. Nike Martine Rose: price '2500' (which means 2.500.000 VND or 2500 USD)
-      // Let's formatting it clean. If price >= 100000, we treat it as VND. If price < 100000, we multiply by 1000 to represent thousands of VND (e.g. 2500 -> 2.500.000đ).
-      // Let's do a simple clean converter:
-      let cleanVal = parseFloat(number);
+      let cleanVal = parseFloat(String(number).replace(/[^0-9.-]+/g,""));
       if (isNaN(cleanVal)) return number;
-      
-      if (cleanVal < 100000) {
-        // e.g. 2500 -> 2,500,000đ
-        cleanVal = cleanVal * 1000;
-      }
-      
       return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cleanVal);
     }
 

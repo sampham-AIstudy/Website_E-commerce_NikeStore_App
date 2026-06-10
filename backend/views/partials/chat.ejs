@@ -1,92 +1,234 @@
-<!-- Chatbot Widget -->
+<!-- Chat Widget: AI Assistant + Live Chat với Admin -->
 <div id="aiChatWidget" class="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+
   <!-- Chat Window -->
-  <div id="aiChatWindow" class="hidden bg-white w-80 sm:w-96 rounded-2xl shadow-2xl border border-gray-100 overflow-hidden mb-4 transform transition-all duration-300 origin-bottom-right">
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-nike-black to-gray-800 p-4 flex justify-between items-center text-white">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 bg-white/20 rounded-full overflow-hidden flex items-center justify-center">
-          <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+  <div id="aiChatWindow" class="hidden bg-white w-80 sm:w-96 rounded-2xl shadow-2xl border border-gray-100 overflow-hidden mb-4 transform transition-all duration-300 origin-bottom-right" style="max-height:560px;display:flex;flex-direction:column;">
+
+    <!-- Header with Tabs -->
+    <div class="bg-gradient-to-r from-[#111] to-gray-800 flex-shrink-0">
+      <!-- Bot info -->
+      <div class="p-4 flex justify-between items-center text-white">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-white/20 rounded-full overflow-hidden flex items-center justify-center">
+            <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+          </div>
+          <div>
+            <h3 id="chatHeaderTitle" class="font-bold text-sm">Nike AI Assistant</h3>
+            <p id="chatHeaderSub" class="text-[10px] text-gray-300">Luôn sẵn sàng hỗ trợ</p>
+          </div>
         </div>
-        <div>
-          <h3 class="font-bold text-sm">Nike AI Assistant</h3>
-          <p class="text-[10px] text-gray-300">Luôn sẵn sàng hỗ trợ</p>
-        </div>
+        <button onclick="toggleChat()" class="text-gray-300 hover:text-white focus:outline-none">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
       </div>
-      <button onclick="toggleChat()" class="text-gray-300 hover:text-white focus:outline-none">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
+
+      <!-- Tab switcher -->
+      <div class="flex border-t border-white/10">
+        <button id="tabAI" onclick="switchChatTab('ai')" class="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white border-b-2 border-orange-500 transition-all">
+          🤖 AI Assistant
+        </button>
+        <button id="tabLive" onclick="switchChatTab('live')" class="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b-2 border-transparent hover:text-white transition-all relative">
+          💬 Người bán
+          <span id="liveChatUnreadBadge" class="hidden absolute top-1.5 right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+        </button>
+      </div>
     </div>
 
-    <!-- Messages Area -->
-    <div id="aiChatMessages" class="h-80 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-3">
-      <!-- Welcome Message -->
-      <div class="flex gap-2">
-        <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 bg-white border border-gray-200">
-          <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: AI ASSISTANT                         -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="chatPanelAI" class="flex flex-col flex-1 overflow-hidden">
+      <!-- Messages Area -->
+      <div id="aiChatMessages" class="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-3" style="min-height:240px;max-height:340px;">
+        <!-- Welcome Message -->
+        <div class="flex gap-2">
+          <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 bg-white border border-gray-200">
+            <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
+          </div>
+          <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100">
+            Chào bạn! Tôi là trợ lý AI của Nike Store. Tôi có thể giúp gì cho bạn hôm nay? (Tìm giày chạy bộ, quần áo, voucher...)
+          </div>
         </div>
-        <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100">
-          Chào bạn! Tôi là trợ lý AI của Nike Store. Tôi có thể giúp gì cho bạn hôm nay? (Tìm giày chạy bộ, quần áo, voucher...)
+      </div>
+
+      <!-- Input Area -->
+      <div class="p-3 bg-white border-t border-gray-100 flex items-center gap-2 flex-shrink-0">
+        <input type="text" id="aiChatInput" placeholder="Nhập câu hỏi của bạn..."
+          class="flex-1 bg-gray-50 border-none rounded-full py-2 px-4 text-xs focus:outline-none focus:ring-1 focus:ring-[#111]"
+          onkeypress="if(event.key === 'Enter') sendChatMessage()">
+        <button onclick="sendChatMessage()" id="aiChatSendBtn"
+          class="w-8 h-8 bg-[#111] text-white rounded-full flex items-center justify-center hover:bg-orange-500 transition-colors focus:outline-none">
+          <svg class="w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: LIVE CHAT VỚI NGƯỜI BÁN              -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="chatPanelLive" class="hidden flex flex-col flex-1 overflow-hidden">
+
+      <!-- Admin status bar -->
+      <div id="liveAdminStatusBar" class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2 flex-shrink-0">
+        <span id="liveAdminDot" class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
+        <span id="liveAdminStatus" class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Đang kết nối...</span>
+      </div>
+
+      <!-- Messages Area -->
+      <div id="liveChatMessages" class="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-3" style="min-height:240px;max-height:320px;">
+        <div class="text-center text-[10px] text-gray-400 font-medium py-2">
+          Bắt đầu cuộc trò chuyện với người bán Nike Store
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="p-3 bg-white border-t border-gray-100 flex flex-col flex-shrink-0 relative">
+        <div id="emojiPickerWrapper" class="hidden absolute bottom-full right-0 mb-2 z-[9999] shadow-2xl rounded-xl overflow-hidden">
+          <emoji-picker class="light"></emoji-picker>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Đính kèm ảnh -->
+          <input type="file" id="liveChatImageUpload" class="hidden" accept="image/*" onchange="uploadLiveChatImage(this)">
+          <button onclick="document.getElementById('liveChatImageUpload').click()" class="text-gray-400 hover:text-nike-orange p-1 focus:outline-none transition-colors" title="Gửi ảnh">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+          </button>
+          <!-- Emoji -->
+          <button onclick="toggleEmojiPicker()" class="text-gray-400 hover:text-yellow-500 p-1 focus:outline-none transition-colors" title="Thêm Emoji">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </button>
+
+          <input type="text" id="liveChatInput" placeholder="Nhắn tin với người bán..."
+            class="flex-1 bg-gray-50 border-none rounded-full py-2 px-4 text-xs focus:outline-none focus:ring-1 focus:ring-[#111]"
+            onkeypress="if(event.key === 'Enter') sendLiveMessage()"
+            oninput="onCustomerTyping()">
+
+          <button onclick="sendLiveMessage()" id="liveChatSendBtn"
+            class="w-8 h-8 bg-[#111] text-white rounded-full flex items-center justify-center hover:bg-orange-500 transition-colors focus:outline-none">
+            <svg class="w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Input Area -->
-    <div class="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
-      <input type="text" id="aiChatInput" placeholder="Nhập câu hỏi của bạn..." class="flex-1 bg-gray-50 border-none rounded-full py-2 px-4 text-xs focus:outline-none focus:ring-1 focus:ring-nike-black" onkeypress="if(event.key === 'Enter') sendChatMessage()">
-      <button onclick="sendChatMessage()" id="aiChatSendBtn" class="w-8 h-8 bg-nike-black text-white rounded-full flex items-center justify-center hover:bg-nike-orange transition-colors focus:outline-none">
-        <svg class="w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-      </button>
-    </div>
   </div>
 
   <!-- Floating Button -->
-  <button onclick="toggleChat()" class="w-14 h-14 bg-nike-black text-white rounded-full flex items-center justify-center shadow-lg hover:bg-nike-orange transition-transform hover:scale-105 glow-dark focus:outline-none overflow-hidden border-2 border-transparent">
+  <button onclick="toggleChat()" class="relative w-14 h-14 bg-[#111] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-orange-500 transition-transform hover:scale-105 focus:outline-none overflow-hidden border-2 border-transparent">
     <img src="/assets/logochatbot.png" alt="Chat" class="w-full h-full object-cover rounded-full bg-white">
+    <!-- Unread badge on floating button -->
+    <span id="chatFloatBadge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white"></span>
   </button>
 </div>
 
-<script>
-  let isChatOpen = false;
+<!-- Thư viện Emoji Picker -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3/index.js"></script>
 
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // ══════════════════════════════════════════════════════
+  // CHAT WIDGET STATE
+  // ══════════════════════════════════════════════════════
+  let isChatOpen = false;
+  let currentChatTab = 'ai';
+
+  // Generate hoặc lấy session ID cho live chat
+  let chatSessionId = localStorage.getItem('nike_chat_session');
+  if (!chatSessionId) {
+    chatSessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('nike_chat_session', chatSessionId);
+  }
+
+  // Lấy thông tin user từ localStorage nếu đã đăng nhập
+  function getChatUser() {
+    try {
+      const u = JSON.parse(localStorage.getItem('nike_user') || '{}');
+      return { userId: u.id || null, username: u.username || u.fullname || 'Khách' };
+    } catch { return { userId: null, username: 'Khách' }; }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // TOGGLE & TAB
+  // ══════════════════════════════════════════════════════
   function toggleChat() {
     isChatOpen = !isChatOpen;
     const windowEl = document.getElementById('aiChatWindow');
     if (isChatOpen) {
+      windowEl.style.display = 'flex';
       windowEl.classList.remove('hidden');
+      // Ẩn badge float khi mở
+      document.getElementById('chatFloatBadge').classList.add('hidden');
+      // Kết nối socket khi mở
+      if (!socketConnected) initSocket();
     } else {
+      windowEl.style.display = 'none';
       windowEl.classList.add('hidden');
     }
   }
 
+  function switchChatTab(tab) {
+    currentChatTab = tab;
+    const panelAI = document.getElementById('chatPanelAI');
+    const panelLive = document.getElementById('chatPanelLive');
+    const tabAI = document.getElementById('tabAI');
+    const tabLive = document.getElementById('tabLive');
+    const title = document.getElementById('chatHeaderTitle');
+    const sub = document.getElementById('chatHeaderSub');
+
+    if (tab === 'ai') {
+      panelAI.classList.remove('hidden');
+      panelLive.classList.add('hidden');
+      tabAI.classList.add('text-white', 'border-orange-500');
+      tabAI.classList.remove('text-gray-400', 'border-transparent');
+      tabLive.classList.add('text-gray-400', 'border-transparent');
+      tabLive.classList.remove('text-white', 'border-orange-500');
+      title.textContent = 'Nike AI Assistant';
+      sub.textContent = 'Luôn sẵn sàng hỗ trợ';
+    } else {
+      panelAI.classList.add('hidden');
+      panelLive.classList.remove('hidden');
+      tabLive.classList.add('text-white', 'border-orange-500');
+      tabLive.classList.remove('text-gray-400', 'border-transparent');
+      tabAI.classList.add('text-gray-400', 'border-transparent');
+      tabAI.classList.remove('text-white', 'border-orange-500');
+      title.textContent = 'Chat với Người Bán';
+      sub.textContent = 'Phản hồi trong vài phút';
+      // Ẩn badge unread khi chuyển qua tab live
+      document.getElementById('liveChatUnreadBadge').classList.add('hidden');
+      // Load lịch sử tin nhắn
+      loadLiveChatHistory();
+      // Scroll xuống cuối
+      scrollLiveChatToBottom();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // AI ASSISTANT LOGIC
+  // ══════════════════════════════════════════════════════
   function appendMessage(text, isUser = false) {
     const messagesEl = document.getElementById('aiChatMessages');
-    
-    // Xóa thẻ [PRODUCT_ID: xx] khỏi text hiển thị cho user
+    // Xóa thẻ [PRODUCT_ID: xx] khỏi text hiển thị
     let displayText = text.replace(/\[PRODUCT_ID:\s*(\d+)\]/g, '').trim();
 
     let html = '';
     if (isUser) {
       html = `
         <div class="flex gap-2 justify-end">
-          <div class="bg-nike-black text-white p-3 rounded-2xl rounded-tr-sm shadow-sm text-xs max-w-[85%] break-words">
-            ${displayText}
+          <div class="max-w-[80%]">
+            <div class="bg-[#111] text-white px-3 py-2 rounded-2xl rounded-tr-sm shadow-sm text-xs break-words" style="word-break:break-word">${displayText}</div>
           </div>
-        </div>
-      `;
+        </div>`;
     } else {
       html = `
         <div class="flex gap-2">
           <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-1 bg-white border border-gray-200">
             <img src="/assets/logochatbot.png" alt="Bot" class="w-full h-full object-cover">
           </div>
-          <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100 max-w-[85%] break-words">
-            ${displayText}
+          <div class="max-w-[80%]">
+            <div class="bg-white px-3 py-2 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100 break-words" style="word-break:break-word">${displayText}</div>
           </div>
-        </div>
-      `;
+        </div>`;
+
     }
-    
     messagesEl.insertAdjacentHTML('beforeend', html);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -96,18 +238,17 @@
     const priceFormatted = new Intl.NumberFormat('vi-VN').format(product.price) + 'đ';
     const html = `
       <div class="flex gap-2 ml-8">
-        <a href="/products/${product.id}" class="block bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow max-w-[200px] group cursor-pointer text-decoration-none">
+        <a href="/products/${product.id}" class="block bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow max-w-[200px] group cursor-pointer no-underline">
           <div class="h-32 bg-gray-50 flex items-center justify-center p-2 relative">
             <img src="${product.image}" class="w-full h-full object-contain group-hover:scale-110 transition-transform" onerror="this.src='/nike.png'">
-            <div class="absolute bottom-2 right-2 bg-nike-orange text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Xem</div>
+            <div class="absolute bottom-2 right-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Xem</div>
           </div>
           <div class="p-2 space-y-1">
             <h4 class="text-[10px] font-bold text-gray-800 line-clamp-2 leading-tight">${product.title}</h4>
-            <div class="text-xs font-extrabold text-nike-orange">${priceFormatted}</div>
+            <div class="text-xs font-extrabold text-orange-500">${priceFormatted}</div>
           </div>
         </a>
-      </div>
-    `;
+      </div>`;
     messagesEl.insertAdjacentHTML('beforeend', html);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -121,11 +262,10 @@
         </div>
         <div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 flex items-center gap-1 h-10">
           <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
-          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.2s"></span>
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.4s"></span>
         </div>
-      </div>
-    `;
+      </div>`;
     messagesEl.insertAdjacentHTML('beforeend', html);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -140,42 +280,389 @@
     const text = inputEl.value.trim();
     if (!text) return;
 
-    // Hiển thị tin nhắn user
     appendMessage(text, true);
     inputEl.value = '';
-    
-    // Vô hiệu hóa input trong khi đợi
     inputEl.disabled = true;
     document.getElementById('aiChatSendBtn').disabled = true;
-    
     appendTypingIndicator();
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text, sessionId: chatSessionId })
       });
-      const data = await response.json();
-      
+
       removeTypingIndicator();
-      
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        appendMessage('Xin lỗi, có sự cố kết nối: ' + (errData.error || response.statusText), false);
+        return;
+      }
+
+      const data = await response.json();
       if (data.error) {
-        appendMessage("Xin lỗi, tôi đang gặp chút sự cố kết nối (" + data.error + ").", false);
+        appendMessage('Xin lỗi, tôi đang gặp sự cố: ' + data.error, false);
       } else {
         appendMessage(data.reply, false);
-        // Hiển thị product cards nếu có
         if (data.products && data.products.length > 0) {
           data.products.forEach(p => appendProductCard(p));
         }
       }
     } catch (err) {
       removeTypingIndicator();
-      appendMessage("Lỗi kết nối tới máy chủ.", false);
+      appendMessage('Lỗi kết nối tới máy chủ. Vui lòng thử lại.', false);
+      console.error('Chat error:', err);
     } finally {
       inputEl.disabled = false;
       document.getElementById('aiChatSendBtn').disabled = false;
       inputEl.focus();
     }
   }
+
+  // ══════════════════════════════════════════════════════
+  // LIVE CHAT SOCKET.IO LOGIC
+  // ══════════════════════════════════════════════════════
+  let socket = null;
+  let socketConnected = false;
+  let liveHistoryLoaded = false;
+  let typingTimeout = null;        // debounce timer cho customer typing
+  let adminTypingTimeout = null;   // auto-hide typing indicator
+
+  // ── Kết nối socket NGAY KHI TRANG LOAD (không chờ mở chat) ──────────────
+  function initSocket() {
+    if (socket) return; // tránh init 2 lần
+
+    const { userId, username } = getChatUser();
+    socket = io({ transports: ['websocket', 'polling'] });
+
+    socket.on('connect', function() {
+      socketConnected = true;
+      console.log('✅ Live Chat socket connected:', socket.id);
+
+      // Đăng ký session ngay khi kết nối
+      socket.emit('customer:join', {
+        sessionId: chatSessionId,
+        userId: userId,
+        username: username
+      });
+
+      setAdminStatus('online');
+    });
+
+    socket.on('disconnect', function() {
+      socketConnected = false;
+      setAdminStatus('offline');
+    });
+
+    socket.on('connect_error', function(err) {
+      console.warn('Socket connect error:', err.message);
+      setAdminStatus('offline');
+    });
+
+    socket.on('reconnect', function() {
+      socketConnected = true;
+      // Re-join session sau khi reconnect
+      const { userId: uid, username: uname } = getChatUser();
+      socket.emit('customer:join', {
+        sessionId: chatSessionId,
+        userId: uid,
+        username: uname
+      });
+      setAdminStatus('online');
+    });
+
+    // Nhận tin nhắn từ admin → hiện NGAY LẬP TỨC
+    socket.on('admin:reply', function(msg) {
+      if (msg.session_id !== chatSessionId) return;
+
+      // Xoá typing indicator nếu đang hiện
+      hideAdminTypingIndicator();
+      if (currentChatTab !== 'live' || !isChatOpen) {
+        document.getElementById('liveChatUnreadBadge').classList.remove('hidden');
+        document.getElementById('chatFloatBadge').classList.remove('hidden');
+      }
+      appendLiveChatMessage(msg.message, msg.sender, msg.created_at, true, msg.type);
+      
+      // Báo là đã đọc
+      if (currentChatTab === 'live' && isChatOpen) {
+        socket.emit('customer:mark-read', { sessionId: chatSessionId });
+      }
+    });
+
+    // Admin đang gõ → hiện "..." ở phía khách
+    socket.on('admin:is-typing', function(data) {
+      if (data.sessionId !== chatSessionId) return;
+      if (data.isTyping) {
+        showAdminTypingIndicator();
+      } else {
+        hideAdminTypingIndicator();
+      }
+    });
+  }
+
+  // ── Typing indicator phía khách: hiện "..." khi admin gõ ────────────────
+  function showAdminTypingIndicator() {
+    const container = document.getElementById('liveChatMessages');
+    if (!container) return;
+
+    // Tránh tạo nhiều lần
+    if (document.getElementById('adminTypingBubble')) {
+      // Reset auto-hide timer
+      clearTimeout(adminTypingTimeout);
+      adminTypingTimeout = setTimeout(hideAdminTypingIndicator, 4000);
+      return;
+    }
+
+    const html = `
+      <div id="adminTypingBubble" class="flex gap-2">
+        <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1 bg-[#111] text-white text-[9px] font-bold">A</div>
+        <div class="bg-white px-3 py-2.5 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full inline-block" style="animation:bounce 1s infinite"></span>
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full inline-block" style="animation:bounce 1s infinite;animation-delay:0.2s"></span>
+          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full inline-block" style="animation:bounce 1s infinite;animation-delay:0.4s"></span>
+        </div>
+      </div>`;
+    container.insertAdjacentHTML('beforeend', html);
+    scrollLiveChatToBottom();
+
+    // Auto-hide sau 4 giây nếu không có update
+    clearTimeout(adminTypingTimeout);
+    adminTypingTimeout = setTimeout(hideAdminTypingIndicator, 4000);
+  }
+
+  function hideAdminTypingIndicator() {
+    const el = document.getElementById('adminTypingBubble');
+    if (el) el.remove();
+    clearTimeout(adminTypingTimeout);
+  }
+
+  // ── Emit typing event khi khách gõ (debounce 600ms) ────────────────────
+  function onCustomerTyping() {
+    if (!socket || !socketConnected) return;
+    const { username } = getChatUser();
+
+    // Emit "đang gõ"
+    socket.emit('customer:typing', {
+      sessionId: chatSessionId,
+      username: username,
+      isTyping: true
+    });
+
+    // Sau 1.5s không gõ thêm → emit "ngừng gõ"
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(function() {
+      socket.emit('customer:typing', {
+        sessionId: chatSessionId,
+        username: username,
+        isTyping: false
+      });
+    }, 1500);
+  }
+
+  function setAdminStatus(status) {
+    const dot = document.getElementById('liveAdminDot');
+    const label = document.getElementById('liveAdminStatus');
+    if (!dot || !label) return;
+
+    if (status === 'online') {
+      dot.className = 'w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse';
+      label.textContent = 'Admin đang trực tuyến';
+      label.className = 'text-[10px] font-bold text-green-600 uppercase tracking-wide';
+    } else {
+      dot.className = 'w-2 h-2 rounded-full bg-gray-300 inline-block';
+      label.textContent = 'Đang kết nối...';
+      label.className = 'text-[10px] font-bold text-gray-400 uppercase tracking-wide';
+    }
+  }
+
+  async function loadLiveChatHistory() {
+    if (liveHistoryLoaded) return;
+    liveHistoryLoaded = true;
+
+    try {
+      const res = await fetch('/api/livechat/messages/' + chatSessionId);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === 'success' && data.data.length > 0) {
+        const container = document.getElementById('liveChatMessages');
+        container.innerHTML = '';
+        data.data.forEach(msg => {
+          appendLiveChatMessage(msg.message, msg.sender, msg.created_at, false, msg.type);
+        });
+        scrollLiveChatToBottom();
+      }
+    } catch (e) {
+      console.error('Load history error:', e);
+    }
+  }
+
+  function appendLiveChatMessage(text, sender, timestamp, scroll = true, type = 'text') {
+    const container = document.getElementById('liveChatMessages');
+    const isCustomer = sender === 'customer';
+    const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+
+    // Xoá typing bubble trước khi thêm tin (nếu có)
+    if (!isCustomer) hideAdminTypingIndicator();
+
+    let contentHtml = '';
+    if (type === 'image') {
+      contentHtml = `<img src="${text}" class="max-w-[200px] rounded-lg shadow-sm border border-gray-200">`;
+    } else {
+      if (isCustomer) {
+        contentHtml = `<div class="bg-[#111] text-white px-3 py-2 rounded-2xl rounded-tr-sm shadow-sm text-xs break-words w-full" style="word-break:break-word">${escapeHtml(text)}</div>`;
+      } else {
+        contentHtml = `<div class="bg-white px-3 py-2 rounded-2xl rounded-tl-sm shadow-sm text-xs text-gray-700 border border-gray-100 break-words w-full" style="word-break:break-word">${escapeHtml(text)}</div>`;
+      }
+    }
+
+    let html = '';
+    if (isCustomer) {
+      html = `
+        <div class="flex gap-2 justify-end">
+          <div class="flex flex-col items-end max-w-[80%]">
+            ${contentHtml}
+            ${timeStr ? `<span class="text-[9px] text-gray-400 mt-1">${timeStr}</span>` : ''}
+          </div>
+        </div>`;
+    } else {
+      html = `
+        <div class="flex gap-2">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1 bg-[#111] text-white text-[9px] font-bold">A</div>
+          <div class="flex flex-col max-w-[80%]">
+            ${contentHtml}
+            ${timeStr ? `<span class="text-[9px] text-gray-400 mt-1">${timeStr}</span>` : ''}
+          </div>
+        </div>`;
+    }
+    container.insertAdjacentHTML('beforeend', html);
+    if (scroll) scrollLiveChatToBottom();
+  }
+
+  function sendLiveMessage() {
+    const inputEl = document.getElementById('liveChatInput');
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    const { userId, username } = getChatUser();
+
+    // Dừng typing indicator
+    clearTimeout(typingTimeout);
+    if (socket && socketConnected) {
+      socket.emit('customer:typing', { sessionId: chatSessionId, username, isTyping: false });
+    }
+
+    // Hiện tin nhắn ngay lập tức (optimistic UI)
+    appendLiveChatMessage(text, 'customer', new Date().toISOString(), true, 'text');
+    inputEl.value = '';
+
+    if (socket && socketConnected) {
+      socket.emit('customer:message', {
+        sessionId: chatSessionId,
+        message: text,
+        userId: userId,
+        username: username
+      });
+    } else {
+      // Fallback REST nếu socket chưa kết nối
+      fetch('/api/livechat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: chatSessionId,
+          message: text,
+          sender: 'customer',
+          user_id: userId,
+          username: username
+        })
+      }).catch(err => console.error('Fallback send error:', err));
+    }
+  }
+
+  function scrollLiveChatToBottom() {
+    const container = document.getElementById('liveChatMessages');
+    if (container) container.scrollTop = container.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
+  // ── Khởi động socket ngay khi DOM sẵn sàng ──────────────────────────────
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSocket);
+  } else {
+    // DOM đã sẵn sàng (script ở cuối body)
+    initSocket();
+  }
+
+  // ── Upload Image Logic ──────────────────────────────────────────────────
+  async function uploadLiveChatImage(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    if (file.size > 25 * 1024 * 1024) {
+      alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 25MB.");
+      input.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+      const res = await fetch('/api/livechat/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const { userId, username } = getChatUser();
+        // Optimistic UI
+        appendLiveChatMessage(data.url, 'customer', new Date().toISOString(), true, 'image');
+        
+        if (socket && socketConnected) {
+          socket.emit('customer:message', {
+            sessionId: chatSessionId,
+            message: data.url,
+            userId: userId,
+            username: username,
+            type: 'image'
+          });
+        }
+      } else {
+        alert(data.message || 'Lỗi khi upload ảnh');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Đã xảy ra lỗi khi upload ảnh');
+    } finally {
+      input.value = ''; // Reset input
+    }
+  }
+
+  // ── Emoji Picker Logic ──────────────────────────────────────────────────
+  function toggleEmojiPicker() {
+    const picker = document.getElementById('emojiPickerWrapper');
+    if (picker) picker.classList.toggle('hidden');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const pickers = document.querySelectorAll('emoji-picker');
+    pickers.forEach(picker => {
+      if (picker.closest('#emojiPickerWrapper')) {
+        picker.addEventListener('emoji-click', event => {
+          const inputEl = document.getElementById('liveChatInput');
+          if (inputEl) {
+            inputEl.value += event.detail.unicode;
+            toggleEmojiPicker();
+            inputEl.focus();
+          }
+        });
+      }
+    });
+  });
+
 </script>

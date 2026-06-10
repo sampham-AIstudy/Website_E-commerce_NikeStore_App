@@ -5,7 +5,6 @@
     function formatPrice(number) { 
       let cleanVal = parseFloat(String(number).replace(/[^0-9.-]+/g,"")); 
       if (isNaN(cleanVal)) return number; 
-      if (cleanVal < 100000) { cleanVal = cleanVal * 1000; } 
       return new Intl.NumberFormat('vi-VN', { style: 'currency' , currency: 'VND' }).format(cleanVal); 
     } 
   %>
@@ -118,7 +117,7 @@
             </div>
 
             <div class="mt-6">
-              <button onclick="document.getElementById('catFilterPanel').classList.add('hidden')" class="w-full bg-nike-orange hover:bg-orange-600 text-white font-bold text-xs py-3 rounded-xl uppercase tracking-wider transition-colors shadow-md">
+              <button id="applyFilterBtn" class="w-full bg-nike-orange hover:bg-orange-600 text-white font-bold text-xs py-3 rounded-xl uppercase tracking-wider transition-colors shadow-md">
                 Xem kết quả
               </button>
             </div>
@@ -340,9 +339,15 @@
           visibleCards.forEach(c => grid.appendChild(c));
         }
 
+        const applyBtn = document.getElementById('applyFilterBtn');
+        if (applyBtn) {
+          applyBtn.addEventListener('click', () => {
+            filterAndSort();
+            document.getElementById('catFilterPanel').classList.add('hidden');
+          });
+        }
+        
         if (searchInput) searchInput.addEventListener('input', filterAndSort);
-        if (typeFilter)  typeFilter.addEventListener('change', filterAndSort);
-        if (priceFilter) priceFilter.addEventListener('change', filterAndSort);
         
         const sortBtns = document.querySelectorAll('.catSortBtn');
         sortBtns.forEach(btn => {
@@ -355,7 +360,6 @@
             btn.classList.remove('bg-gray-50', 'text-gray-600');
             btn.classList.add('bg-nike-black', 'text-white', 'shadow-sm', 'active');
             if (sortSelect) sortSelect.value = btn.getAttribute('data-sort');
-            filterAndSort();
           });
         });
 

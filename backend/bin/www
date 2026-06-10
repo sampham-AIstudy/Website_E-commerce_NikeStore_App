@@ -3,12 +3,216 @@
 var app = require('../app');
 var debug = require('debug')('nike-store-backend:server');
 var http = require('http');
+var { Server } = require('socket.io');
+var mysql = require('mysql2');
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 var server = http.createServer(app);
 
+// ─── Socket.IO Setup ─────────────────────────────────────────────────────────
+var io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    methods: ['GET', 'POST']
+  }
+});
+
+// Kết nối MySQL cho Socket.IO
+var db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'nike_store'
+});
+
+// Lưu trữ socket admin (có thể nhiều admin cùng lúc)
+const adminSockets = new Set();
+// Map: sessionId → socket của customer
+const customerSockets = new Map();
+
+io.on('connection', function(socket) {
+  console.log('🔌 Socket connected:', socket.id);
+
+  // ── Khách hàng đăng ký session ──────────────────────────────────────────
+  socket.on('customer:join', function(data) {
+    const { sessionId, userId, username } = data;
+    socket.sessionId = sessionId;
+    socket.isCustomer = true;
+    socket.userId = userId || null;
+    socket.username = username || 'Khách';
+
+    customerSockets.set(sessionId, socket);
+    socket.join('session:' + sessionId);
+
+    console.log(`👤 Customer joined session: ${sessionId} (${username})`);
+
+    // Thông báo cho admin có khách online
+    io.to('admin-room').emit('customer:online', {
+      sessionId,
+      userId,
+      username,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ── Admin đăng nhập vào room ────────────────────────────────────────────
+  socket.on('admin:join', function() {
+    socket.isAdmin = true;
+    socket.join('admin-room');
+    adminSockets.add(socket.id);
+    console.log('👑 Admin joined admin-room:', socket.id);
+
+    // Gửi danh sách session đang online
+    const onlineSessions = [];
+    customerSockets.forEach((s, sId) => {
+      if (s.connected) {
+        onlineSessions.push({
+          sessionId: sId,
+          userId: s.userId,
+          username: s.username
+        });
+      }
+    });
+    socket.emit('admin:online-sessions', onlineSessions);
+  });
+
+  // ── Khách hàng gửi tin nhắn ─────────────────────────────────────────────
+  socket.on('customer:message', function(data) {
+    const { sessionId, message, userId, username, type } = data;
+    
+    if (!sessionId || !message) return;
+
+    const msgType = type || 'text';
+
+    // Lưu vào DB
+    db.query(
+      'INSERT INTO chat_messages (session_id, user_id, username, sender, message, type) VALUES (?, ?, ?, ?, ?, ?)',
+      [sessionId, userId || null, username || 'Khách', 'customer', message, msgType],
+      function(err, result) {
+        if (err) {
+          console.error('DB Error saving customer message:', err);
+          return;
+        }
+
+        const msgData = {
+          id: result.insertId,
+          session_id: sessionId,
+          user_id: userId || null,
+          username: username || 'Khách',
+          sender: 'customer',
+          message: message,
+          type: msgType,
+          created_at: new Date().toISOString()
+        };
+
+        // Gửi lại cho chính khách để xác nhận
+        socket.emit('message:sent', msgData);
+
+        // Broadcast cho tất cả admin
+        io.to('admin-room').emit('admin:new-message', msgData);
+
+        console.log(`💬 [${sessionId}] ${username}: ${message}`);
+      }
+    );
+  });
+
+  // ── Admin gửi tin nhắn cho khách ────────────────────────────────────────
+  socket.on('admin:message', function(data) {
+    const { sessionId, message, type } = data;
+
+    if (!sessionId || !message) return;
+
+    const msgType = type || 'text';
+
+    // Lưu vào DB
+    db.query(
+      'INSERT INTO chat_messages (session_id, user_id, username, sender, message, type, is_read) VALUES (?, NULL, ?, ?, ?, ?, 1)',
+      [sessionId, 'Admin', 'admin', message, msgType],
+      function(err, result) {
+        if (err) {
+          console.error('DB Error saving admin message:', err);
+          return;
+        }
+
+        const msgData = {
+          id: result.insertId,
+          session_id: sessionId,
+          username: 'Admin',
+          sender: 'admin',
+          message: message,
+          type: msgType,
+          created_at: new Date().toISOString()
+        };
+
+        // Gửi cho khách hàng trong session đó
+        io.to('session:' + sessionId).emit('admin:reply', msgData);
+
+        // Gửi lại cho tất cả admin để đồng bộ
+        io.to('admin-room').emit('admin:message-sent', msgData);
+
+        console.log(`👑 Admin → [${sessionId}]: ${message}`);
+      }
+    );
+  });
+
+  // ── Admin đánh dấu đã đọc ───────────────────────────────────────────────
+  socket.on('admin:mark-read', function(data) {
+    const { sessionId } = data;
+    if (!sessionId) return;
+
+    db.query(
+      'UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = "customer"',
+      [sessionId],
+      function(err) {
+        if (!err) {
+          // Thông báo cho tất cả admin cập nhật badge
+          io.to('admin-room').emit('admin:read-ack', { sessionId });
+        }
+      }
+    );
+  });
+
+  // ── Khách hàng đang gõ → báo admin ─────────────────────────────────────
+  socket.on('customer:typing', function(data) {
+    const { sessionId, username, isTyping } = data;
+    if (!sessionId) return;
+    io.to('admin-room').emit('admin:customer-typing', {
+      sessionId,
+      username: username || 'Khách',
+      isTyping: !!isTyping
+    });
+  });
+
+  // ── Admin đang gõ → báo khách ────────────────────────────────────────────
+  socket.on('admin:typing', function(data) {
+    const { sessionId, isTyping } = data;
+    if (!sessionId) return;
+    io.to('session:' + sessionId).emit('admin:is-typing', {
+      sessionId,
+      isTyping: !!isTyping
+    });
+  });
+
+  // ── Ngắt kết nối ────────────────────────────────────────────────────────
+  socket.on('disconnect', function() {
+    if (socket.isAdmin) {
+      adminSockets.delete(socket.id);
+      console.log('👑 Admin disconnected:', socket.id);
+    }
+    if (socket.isCustomer && socket.sessionId) {
+      customerSockets.delete(socket.sessionId);
+      io.to('admin-room').emit('customer:offline', { sessionId: socket.sessionId });
+      console.log(`👤 Customer offline: ${socket.sessionId}`);
+    }
+  });
+});
+
+// Export io để các route có thể dùng nếu cần
+app.set('io', io);
+
+// ─── Server Start ─────────────────────────────────────────────────────────────
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
@@ -41,5 +245,6 @@ function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
   console.log('🚀 Nike Store Backend đang chạy tại http://localhost:' + addr.port);
+  console.log('🔌 Socket.IO đã khởi động - Live Chat sẵn sàng!');
   debug('Listening on ' + bind);
 }

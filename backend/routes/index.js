@@ -5,20 +5,16 @@ var mysql = require('mysql2');
 // =============================================
 // KẾT NỐI MySQL
 // =============================================
-var db = mysql.createConnection({
+var db = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'nike_store'
+  database: 'nike_store',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
-
-db.connect(function(err) {
-  if (err) {
-    console.error('❌ Lỗi kết nối MySQL (index route):', err.stack);
-    return;
-  }
-  console.log('✅ Index router đã kết nối MySQL');
-});
+console.log('✅ Index router đã khởi tạo MySQL Pool');
 
 // ─── Pagination helper ─────────────────────────────────────────────────────────
 var PAGE_SIZE = 12;
@@ -54,15 +50,15 @@ function buildCategoryQuery(baseWhere, req) {
     params.push(itemType);
   }
 
-  // Filter by price range (giá trong DB là nghìn VNĐ, nhân 1000 cho so sánh)
+  // Filter by price range (giá trong DB là VNĐ thực tế)
   if (priceRange === 'under-1m') {
-    conditions.push('price < 1000');
+    conditions.push('price < 1000000');
   } else if (priceRange === '1m-2m') {
-    conditions.push('price >= 1000 AND price <= 2000');
+    conditions.push('price >= 1000000 AND price <= 2000000');
   } else if (priceRange === '2m-4m') {
-    conditions.push('price >= 2000 AND price <= 4000');
+    conditions.push('price >= 2000000 AND price <= 4000000');
   } else if (priceRange === 'over-4m') {
-    conditions.push('price > 4000');
+    conditions.push('price > 4000000');
   }
 
   // Search by title
@@ -305,6 +301,101 @@ router.get('/login', function(req, res) {
 // =============================================
 router.get('/profile', function(req, res) {
   res.render('profile', { title: 'Nike Store - Thông Tin Cá Nhân' });
+});
+
+// =============================================
+// GET /payment/vnpay/return  →  VNPay redirect về sau khi thanh toán
+// =============================================
+router.get('/payment/vnpay/return', function (req, res) {
+  const { vnpay } = require('../utils/vnpayService');
+  
+  try {
+    const verify = vnpay.verifyReturnUrl(req.query);
+    if (!verify.isSuccess) {
+      return res.render('payment-result', {
+        title: 'Nike Store - Kết Quả Thanh Toán',
+        isSuccess: false,
+        resultCode: req.query.vnp_ResponseCode,
+        message: 'Chữ ký không hợp lệ hoặc dữ liệu bị thay đổi.',
+        internalOrderId: req.query.vnp_TxnRef,
+        amount: parseInt(req.query.vnp_Amount || 0) / 100,
+        transId: req.query.vnp_TransactionNo,
+        payType: req.query.vnp_BankCode || 'VNPAY',
+      });
+    }
+
+    const isSuccess = req.query.vnp_ResponseCode === '00';
+
+    // TRIGGER IPN LOCALLY (Mô phỏng VNPay Server gọi về localhost)
+    try {
+      const http = require('http');
+      const qs = require('querystring');
+      const host = req.get('host') || 'localhost:3000';
+      const ipnUrl = `http://${host}/api/orders/vnpay/ipn?` + qs.stringify(req.query);
+      
+      http.get(ipnUrl, (resIpn) => {
+        // IPN đã được kích hoạt
+      }).on('error', (err) => {
+        console.error('Local IPN error:', err);
+      });
+    } catch (e) {
+      console.error('Local IPN trigger error:', e);
+    }
+
+    res.render('payment-result', {
+      title          : 'Nike Store - Kết Quả Thanh Toán',
+      isSuccess      : isSuccess,
+      resultCode     : req.query.vnp_ResponseCode,
+      message        : isSuccess ? 'Giao dịch thành công' : 'Giao dịch thất bại',
+      internalOrderId: req.query.vnp_TxnRef,
+      amount         : parseInt(req.query.vnp_Amount || 0) / 100,
+      transId        : req.query.vnp_TransactionNo,
+      payType        : req.query.vnp_BankCode || 'VNPAY',
+    });
+  } catch (error) {
+    res.render('payment-result', {
+      title: 'Nike Store - Kết Quả Thanh Toán',
+      isSuccess: false,
+      resultCode: '99',
+      message: 'Lỗi xác thực: ' + error.message,
+      internalOrderId: req.query.vnp_TxnRef || '',
+      amount: 0,
+      transId: '',
+      payType: 'VNPAY'
+    });
+  }
+});
+
+// =============================================
+// POST /api/ncoin/topup  →  Tạo URL Nạp N-Coin qua VNPay
+// =============================================
+router.post('/api/ncoin/topup', function(req, res) {
+  var amount = parseInt(req.body.amount) || 0;
+  var userId = req.body.user_id;
+
+  if (!userId || amount < 10000) {
+    return res.status(400).json({ status: 'error', message: 'Số tiền nạp tối thiểu là 10.000đ và yêu cầu đăng nhập.' });
+  }
+
+  const { vnpay, VnpLocale, ProductCode } = require('../utils/vnpayService');
+  var ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress || '127.0.0.1';
+
+  try {
+    const paymentUrl = vnpay.buildPaymentUrl({
+      vnp_Amount: amount, // Thư viện đã tự nhân 100
+      vnp_IpAddr: ipAddr,
+      vnp_TxnRef: 'NCOIN_' + userId + '_' + Date.now(),
+      vnp_OrderInfo: `Nap ${amount} VND vao vi N-Coin`,
+      vnp_OrderType: ProductCode.Other,
+      vnp_ReturnUrl: 'http://localhost:3000/payment/vnpay/return',
+      vnp_Locale: VnpLocale.VN,
+    });
+    
+    res.json({ status: 'success', payUrl: paymentUrl });
+  } catch (err) {
+    console.error('Lỗi tạo URL nạp N-Coin:', err);
+    res.status(500).json({ status: 'error', message: 'Lỗi kết nối VNPay' });
+  }
 });
 
 // =============================================

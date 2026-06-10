@@ -5,9 +5,6 @@
   function formatPrice(number) {
     let cleanVal = parseFloat(String(number).replace(/[^0-9.-]+/g,""));
     if (isNaN(cleanVal)) return number;
-    if (cleanVal < 100000) {
-      cleanVal = cleanVal * 1000;
-    }
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cleanVal);
   }
 %>
@@ -275,12 +272,8 @@
         window.location.href = window.location.pathname + (queryStr ? '?' + queryStr : '');
       }
 
-      // "Xem kết quả" button
+      // "Xem kết quả" button triggers the filter
       if (applyBtn) applyBtn.addEventListener('click', applyFilters);
-
-      // Direct change on selects also triggers filter
-      if (typeFilter)  typeFilter.addEventListener('change', applyFilters);
-      if (priceFilter) priceFilter.addEventListener('change', applyFilters);
 
       // Search on Enter key
       if (searchInput) {
@@ -301,7 +294,6 @@
           btn.classList.remove('bg-gray-50', 'text-gray-600');
           btn.classList.add('bg-nike-black', 'text-white', 'shadow-sm', 'active');
           if (sortSelect) sortSelect.value = btn.getAttribute('data-sort');
-          applyFilters();
         });
       });
     });

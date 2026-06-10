@@ -52,9 +52,6 @@
     function formatPriceJs(number) {
       let cleanVal = parseFloat(String(number).replace(/[^0-9.-]+/g, ""));
       if (isNaN(cleanVal)) return number;
-      if (cleanVal < 100000) {
-        cleanVal = cleanVal * 1000;
-      }
       return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cleanVal);
     }
 

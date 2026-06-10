@@ -127,15 +127,15 @@
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
-        Đổi mật khẩu
+        Bảo mật
       </button>
-      <a href="/my-orders"
-        class="w-full text-left px-4 py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-700 transition-all duration-200 flex items-center gap-3 hover:border-nike-orange hover:text-nike-orange">
+      <button id="tabNCoinBtn" onclick="switchTab('ncoin')"
+        class="tab-btn w-full text-left px-4 py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-700 transition-all duration-200 flex items-center gap-3 focus:outline-none">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        Đơn hàng của tôi
-      </a>
+        Ví N-Coin
+      </button>
     </div>
 
     <!-- Right: Tab Content -->
@@ -157,6 +157,19 @@
             <div class="space-y-1.5">
               <label class="input-label">Số điện thoại *</label>
               <input type="tel" id="pPhone" required placeholder="0987654321" class="input-field">
+            </div>
+            <div class="space-y-1.5">
+              <label class="input-label">Giới tính</label>
+              <select id="pGender" class="select-field">
+                <option value="">Chưa thiết lập</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+            <div class="space-y-1.5">
+              <label class="input-label">Ngày sinh</label>
+              <input type="date" id="pDob" class="input-field">
             </div>
           </div>
           <div class="pt-2">
@@ -191,33 +204,93 @@
         </div>
       </div>
 
-      <!-- ═══ TAB 2: ĐỔI MẬT KHẨU ═══ -->
-      <div id="tabPassword" class="tab-panel bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-6">
-        <div class="border-b pb-4">
-          <h2 class="font-extrabold text-base text-nike-black uppercase tracking-wide">Đổi Mật Khẩu</h2>
-          <p class="text-xs text-gray-400 mt-1">Sau khi đổi mật khẩu, bạn sẽ cần đăng nhập lại.</p>
+      <!-- ═══ TAB 2: BẢO MẬT ═══ -->
+      <div id="tabPassword" class="tab-panel bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-8">
+        
+        <!-- Change Email -->
+        <div>
+          <div class="border-b pb-4 mb-4">
+            <h2 class="font-extrabold text-base text-nike-black uppercase tracking-wide">Đổi Email Đăng Nhập</h2>
+            <p class="text-xs text-gray-400 mt-1">Cập nhật email mới. Bạn cần nhập mật khẩu hiện tại để xác thực.</p>
+          </div>
+          <form id="emailForm" onsubmit="changeEmail(event)" class="space-y-5">
+            <div class="space-y-1.5">
+              <label class="input-label">Mật khẩu xác thực *</label>
+              <input type="password" id="authPassword" required placeholder="••••••••" class="input-field">
+            </div>
+            <div class="space-y-1.5">
+              <label class="input-label">Email mới *</label>
+              <input type="email" id="newEmail" required placeholder="email.moi@gmail.com" class="input-field">
+            </div>
+            <button type="submit" id="changeEmailBtn"
+              class="w-full bg-nike-black hover:bg-nike-orange text-white font-extrabold py-3.5 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 focus:outline-none">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              Cập Nhật Email
+            </button>
+          </form>
         </div>
 
-        <form id="passwordForm" onsubmit="changePassword(event)" class="space-y-5">
-          <div class="space-y-1.5">
-            <label class="input-label">Mật khẩu hiện tại *</label>
-            <input type="password" id="oldPassword" required placeholder="••••••••" class="input-field">
+        <!-- Change Password -->
+        <div>
+          <div class="border-b pb-4 mb-4">
+            <h2 class="font-extrabold text-base text-nike-black uppercase tracking-wide">Đổi Mật Khẩu</h2>
+            <p class="text-xs text-gray-400 mt-1">Sau khi đổi mật khẩu, bạn sẽ cần đăng nhập lại.</p>
           </div>
-          <div class="space-y-1.5">
-            <label class="input-label">Mật khẩu mới *</label>
-            <input type="password" id="newPassword" required placeholder="••••••••" minlength="6" class="input-field">
-            <p class="text-[10px] text-gray-400 mt-1">Tối thiểu 6 ký tự.</p>
+          <form id="passwordForm" onsubmit="changePassword(event)" class="space-y-5">
+            <div class="space-y-1.5">
+              <label class="input-label">Mật khẩu hiện tại *</label>
+              <input type="password" id="oldPassword" required placeholder="••••••••" class="input-field">
+            </div>
+            <div class="space-y-1.5">
+              <label class="input-label">Mật khẩu mới *</label>
+              <input type="password" id="newPassword" required placeholder="••••••••" minlength="6" class="input-field">
+              <p class="text-[10px] text-gray-400 mt-1">Tối thiểu 6 ký tự.</p>
+            </div>
+            <div class="space-y-1.5">
+              <label class="input-label">Xác nhận mật khẩu mới *</label>
+              <input type="password" id="confirmPassword" required placeholder="••••••••" class="input-field">
+            </div>
+            <button type="submit" id="changePassBtn"
+              class="w-full bg-nike-black hover:bg-nike-orange text-white font-extrabold py-3.5 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 focus:outline-none">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              Đổi Mật Khẩu
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ═══ TAB 4: VÍ N-COIN ═══ -->
+      <div id="tabNCoin" class="tab-panel bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-6">
+        <div class="border-b pb-4">
+          <h2 class="font-extrabold text-base text-nike-black uppercase tracking-wide">Ví N-Coin</h2>
+          <p class="text-xs text-gray-400 mt-1">Quản lý số dư và nạp thêm N-Coin.</p>
+        </div>
+
+        <div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-4 opacity-10">
+            <svg class="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
-          <div class="space-y-1.5">
-            <label class="input-label">Xác nhận mật khẩu mới *</label>
-            <input type="password" id="confirmPassword" required placeholder="••••••••" class="input-field">
+          <div class="relative z-10">
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Số dư hiện tại</p>
+            <div class="text-4xl font-black mt-2 text-nike-orange" id="nCoinBalance">0</div>
+            <p class="text-xs mt-1 text-gray-400">N-Coin</p>
           </div>
-          <button type="submit" id="changePassBtn"
-            class="w-full bg-nike-black hover:bg-nike-orange text-white font-extrabold py-3.5 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 focus:outline-none">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-            </svg>
-            Đổi Mật Khẩu
+        </div>
+
+        <form id="nCoinTopupForm" onsubmit="topupNCoin(event)" class="space-y-4 pt-4 border-t">
+          <h3 class="font-bold text-sm text-gray-700">Nạp thêm N-Coin</h3>
+          <div class="space-y-1.5">
+            <label class="input-label">Số tiền cần nạp (VNĐ) *</label>
+            <input type="number" id="topupAmount" required min="10000" step="1000" placeholder="100000" class="input-field">
+            <p class="text-[10px] text-gray-400 mt-1">1 VNĐ = 1 N-Coin. Tối thiểu 10.000 VNĐ.</p>
+          </div>
+          <button type="submit" id="topupBtn"
+            class="w-full bg-nike-orange hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-full text-xs uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-2 focus:outline-none glow-orange">
+            Nạp Tiền Qua VNPay
           </button>
         </form>
       </div>
@@ -350,6 +423,7 @@
     let targetBtn = 'tabInfoBtn';
     if(tab === 'password') { targetPanel = 'tabPassword'; targetBtn = 'tabPassBtn'; }
     if(tab === 'address') { targetPanel = 'tabAddress'; targetBtn = 'tabAddressBtn'; }
+    if(tab === 'ncoin') { targetPanel = 'tabNCoin'; targetBtn = 'tabNCoinBtn'; }
     
     document.getElementById(targetPanel).classList.add('active');
     document.getElementById(targetBtn).classList.add('active');
@@ -410,8 +484,17 @@
 
       document.getElementById('pFullname').value = p.fullname || '';
       document.getElementById('pPhone').value    = p.phone    || '';
+      document.getElementById('pGender').value   = p.gender   || '';
+      if (p.dob) {
+        document.getElementById('pDob').value    = new Date(p.dob).toISOString().split('T')[0];
+      } else {
+        document.getElementById('pDob').value    = '';
+      }
       document.getElementById('profileHeaderName').textContent  = p.fullname || p.username || 'Người dùng';
       document.getElementById('profileHeaderEmail').textContent = p.email    || '';
+      
+      const balance = parseInt(p.n_coin) || 0;
+      document.getElementById('nCoinBalance').textContent = balance.toLocaleString('vi-VN');
 
       // Avatar
       setAvatarDisplay(p.avatar || null, p.fullname || p.username);
@@ -799,6 +882,32 @@
     } catch(e) { showToast('Lỗi kết nối', 'error'); }
   }
 
+  // ── N-COIN ─────────────────────────────────────────────────────────────────
+  async function topupNCoin(e) {
+    e.preventDefault();
+    const amount = document.getElementById('topupAmount').value;
+    const btn = document.getElementById('topupBtn');
+    btn.innerHTML = 'Đang xử lý...'; btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/ncoin/topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount, user_id: currentUserId })
+      });
+      const data = await res.json();
+      if(data.status === 'success' && data.payUrl) {
+        window.location.href = data.payUrl;
+      } else {
+        showToast(data.message || 'Lỗi tạo giao dịch', 'error');
+        btn.innerHTML = 'Nạp Tiền Qua VNPay'; btn.disabled = false;
+      }
+    } catch(e) {
+      showToast('Lỗi kết nối', 'error');
+      btn.innerHTML = 'Nạp Tiền Qua VNPay'; btn.disabled = false;
+    }
+  }
+
   // ── SAVE PROFILE ──────────────────────────────────────────────────────────
   async function saveProfile(event) {
     event.preventDefault();
@@ -807,11 +916,13 @@
 
     const fullname = document.getElementById('pFullname').value.trim();
     const phone    = document.getElementById('pPhone').value.trim();
+    const gender   = document.getElementById('pGender').value;
+    const dob      = document.getElementById('pDob').value;
 
     try {
       const res  = await fetch(`/api/auth/profile/${currentUserId}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullname, phone })
+        body: JSON.stringify({ fullname, phone, gender, dob })
       });
       const data = await res.json();
 
@@ -840,6 +951,37 @@
 
     btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Lưu Thông Tin`;
     btn.disabled = false;
+  }
+
+  // ── CHANGE EMAIL ──────────────────────────────────────────────────────────
+  async function changeEmail(e) {
+    e.preventDefault();
+    const authPassword = document.getElementById('authPassword').value;
+    const newEmail     = document.getElementById('newEmail').value.trim();
+    const btn          = document.getElementById('changeEmailBtn');
+
+    if (!authPassword || !newEmail) return showToast('Vui lòng điền đủ thông tin', 'error');
+
+    btn.innerHTML = 'Đang xử lý...'; btn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/auth/change-email/${currentUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword: authPassword, newEmail })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        showToast('Đổi email thành công! Đang tải lại...', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showToast(data.message || 'Lỗi đổi email', 'error');
+      }
+    } catch(e) {
+      showToast('Lỗi kết nối!', 'error');
+    }
+    btn.innerHTML = 'Cập Nhật Email'; btn.disabled = false;
   }
 
   // ── CHANGE PASSWORD ───────────────────────────────────────────────────────

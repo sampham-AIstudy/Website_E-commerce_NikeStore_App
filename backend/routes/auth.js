@@ -29,15 +29,14 @@ var uploadAvatar = multer({
   }
 });
 
-var db = mysql.createConnection({
+var db = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'nike_store'
-});
-
-db.connect(function (err) {
-  if (err) { console.error('❌ Auth DB lỗi:', err.stack); return; }
+  database: 'nike_store',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 // =============================================
@@ -161,25 +160,28 @@ router.post('/google', function (req, res) {
 
       // Tìm user theo google_id hoặc email
       db.query(
-        'SELECT id, username, role FROM users WHERE username = ? LIMIT 1',
+        'SELECT id, username, role, avatar FROM users WHERE username = ? LIMIT 1',
         [email],
         function (err, rows) {
           if (err) return res.status(500).json({ status: 'error', message: err.message });
 
           if (rows.length > 0) {
-            // User đã tồn tại → đăng nhập luôn
+            // User đã tồn tại → cập nhật avatar nếu đăng nhập bằng google, sau đó đăng nhập luôn
             var u = rows[0];
-            return res.json({
-              status: 'success',
-              message: 'Đăng nhập Google thành công!',
-              user: { id: u.id, username: u.username, role: u.role, displayName: name, avatar: payload.picture }
+            db.query('UPDATE users SET avatar = ? WHERE id = ?', [payload.picture, u.id], function(updateErr) {
+              return res.json({
+                status: 'success',
+                message: 'Đăng nhập Google thành công!',
+                user: { id: u.id, username: u.username, role: u.role, displayName: name, avatar: payload.picture }
+              });
             });
+            return;
           }
 
           // Tạo user mới từ Google account
           db.query(
-            'INSERT INTO users (username, password, role) VALUES (?, ?, \'user\')',
-            [email, 'google_oauth_' + googleId],
+            'INSERT INTO users (username, password, role, avatar) VALUES (?, ?, \'user\', ?)',
+            [email, 'google_oauth_' + googleId, payload.picture],
             function (insertErr, insertResult) {
               if (insertErr) {
                 // Nếu trùng email thì thử lấy lại
@@ -344,7 +346,7 @@ router.post('/reset-password', function (req, res) {
 router.get('/profile/:id', function (req, res) {
   var id = req.params.id;
   db.query(
-    'SELECT id, username, email, fullname, phone, address, city, avatar, role, created_at FROM users WHERE id = ?',
+    'SELECT id, username, email, fullname, phone, avatar, role, gender, dob, n_coin, created_at FROM users WHERE id = ?',
     [id],
     function (error, results) {
       if (error) return res.status(500).json({ status: 'error', message: error.message });
@@ -356,25 +358,59 @@ router.get('/profile/:id', function (req, res) {
 
 // =============================================
 // PUT /api/auth/profile/:id  →  Cập nhật thông tin cá nhân
-// Body: { fullname, phone, address, city }
+// Body: { fullname, phone, gender, dob }
 // =============================================
 router.put('/profile/:id', function (req, res) {
   var id = req.params.id;
-  var { fullname, phone, address, city } = req.body;
+  var { fullname, phone, gender, dob } = req.body;
 
   if (!fullname || !phone) {
     return res.status(400).json({ status: 'error', message: 'Vui lòng nhập đầy đủ họ tên và số điện thoại!' });
   }
 
+  // Handle empty string for dob as NULL
+  var dobValue = dob && dob.trim() !== '' ? dob : null;
+
   db.query(
-    'UPDATE users SET fullname = ?, phone = ?, address = ?, city = ? WHERE id = ?',
-    [fullname, phone, address || null, city || null, id],
+    'UPDATE users SET fullname = ?, phone = ?, gender = ?, dob = ? WHERE id = ?',
+    [fullname, phone, gender || null, dobValue, id],
     function (error, results) {
       if (error) return res.status(500).json({ status: 'error', message: error.message });
       if (results.affectedRows === 0) return res.status(404).json({ status: 'error', message: 'Không tìm thấy người dùng' });
       res.json({ status: 'success', message: 'Cập nhật thông tin thành công!' });
     }
   );
+});
+
+// =============================================
+// PUT /api/auth/change-email/:id  →  Đổi Email
+// Body: { oldPassword, newEmail }
+// =============================================
+router.put('/change-email/:id', function (req, res) {
+  var id = req.params.id;
+  var { oldPassword, newEmail } = req.body;
+
+  if (!oldPassword || !newEmail) {
+    return res.status(400).json({ status: 'error', message: 'Vui lòng nhập mật khẩu xác thực và email mới!' });
+  }
+
+  // Verify old password first
+  db.query('SELECT id FROM users WHERE id = ? AND password = ?', [id, oldPassword], function (error, results) {
+    if (error) return res.status(500).json({ status: 'error', message: error.message });
+    if (results.length === 0) {
+      return res.status(401).json({ status: 'error', message: 'Mật khẩu xác nhận không đúng!' });
+    }
+
+    db.query('UPDATE users SET email = ? WHERE id = ?', [newEmail, id], function (err2) {
+      if (err2) {
+        if (err2.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ status: 'error', message: 'Email này đã được tài khoản khác sử dụng!' });
+        }
+        return res.status(500).json({ status: 'error', message: err2.message });
+      }
+      res.json({ status: 'success', message: 'Đổi email thành công! Vui lòng dùng email mới ở lần đăng nhập tới.' });
+    });
+  });
 });
 
 // =============================================

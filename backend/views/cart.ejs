@@ -141,6 +141,24 @@
               </label>
             </div>
 
+            <!-- N-Coin -->
+            <div class="p-3 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-orange-200 flex items-center justify-between cursor-pointer transition-all duration-200" onclick="selectPayment('ncoin')" id="ncoinPayOption">
+              <div class="flex items-center gap-3">
+                <input type="radio" id="ncoin_pay" name="payment" value="ncoin" class="accent-nike-orange w-4 h-4">
+                <label for="ncoin_pay" class="flex items-center gap-2 cursor-pointer select-none">
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 border border-orange-200">
+                    <span class="font-black text-nike-orange text-xs">N</span>
+                  </span>
+                  <span class="text-xs font-bold text-gray-700">
+                    Thanh toán bằng <span class="text-nike-orange font-extrabold">Ví N-Coin</span>
+                  </span>
+                </label>
+              </div>
+              <div class="text-xs font-bold text-gray-500">
+                Số dư: <span id="ncoinBalanceDisplay" class="text-nike-orange">0 đ</span>
+              </div>
+            </div>
+
             <!-- VPBank -->
             <div class="p-3 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-green-200 flex items-center gap-3 cursor-pointer transition-all duration-200" onclick="selectPayment('vpbank')">
               <input type="radio" id="vpbank_pay" name="payment" value="vpbank" class="accent-green-500 w-4 h-4">
@@ -161,6 +179,38 @@
                 <span class="text-gray-500">Số tài khoản:</span><span class="font-bold text-gray-800 select-all cursor-text">312997495</span>
                 <span class="text-gray-500">Chủ tài khoản:</span><span class="font-bold text-gray-800">PHAM VAN SAM</span>
                 <span class="text-gray-500">Nội dung CK:</span><span class="font-bold text-nike-orange">NIKE [Mã đơn hàng]</span>
+              </div>
+            </div>
+
+            <!-- VNPay -->
+            <div class="p-3 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-blue-200 flex items-center gap-3 cursor-pointer transition-all duration-200" onclick="selectPayment('vnpay')" id="vnpayPayOption">
+              <input type="radio" id="vnpay_pay" name="payment" value="vnpay" class="w-4 h-4" style="accent-color:#005baa">
+              <label for="vnpay_pay" class="flex items-center gap-2 cursor-pointer select-none">
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600">
+                  <span class="font-bold text-white text-xs">VNP</span>
+                </span>
+                <span class="text-xs font-bold text-gray-700">
+                  Thanh toán qua <span style="color:#005baa" class="font-extrabold">VNPay</span>
+                  <span class="text-gray-400 font-normal">(ATM · Visa / Master · QR)</span>
+                </span>
+              </label>
+            </div>
+
+            <!-- VNPay Info Box (hiện khi chọn VNPay) -->
+            <div id="vnpayInfoBox" class="hidden rounded-2xl border overflow-hidden" style="border-color:#93c5fd">
+              <div class="px-4 pt-3 pb-2 bg-blue-50">
+                <p class="text-[10px] font-bold flex items-center gap-1.5 text-blue-800">
+                  <span class="w-1.5 h-1.5 rounded-full inline-block animate-pulse bg-blue-600"></span>
+                  Bạn sẽ được chuyển đến Cổng thanh toán VNPay
+                </p>
+                <div class="flex flex-wrap gap-1.5 mt-2">
+                  <span class="flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full text-white bg-blue-500">
+                    Ứng dụng ngân hàng (QR)
+                  </span>
+                  <span class="flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full text-white bg-indigo-500">
+                    Thẻ ATM / Visa / Master
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -404,7 +454,7 @@
         let appliedShippingDiscount = 0;
 
         if (selectedVouchers.product) {
-           let disc = calculateDiscount(selectedVouchers.product, grandTotal);
+           let disc = calculateDiscount(selectedVouchers.product, selectedItems);
            appliedProductDiscount = disc;
         }
         if (selectedVouchers.shipping) {
@@ -429,6 +479,7 @@
         document.getElementById('summaryGrandTotal').textContent = formatPrice(grandTotal);
         
         renderSelectedVouchersBadge();
+        checkNcoinEligibility();
       }
     }
 
@@ -436,7 +487,35 @@
     let walletVouchers = [];
     let availableVouchers = [];
 
-    function calculateDiscount(voucher, baseAmount) {
+    function getEligibleTotal(voucher, selectedItems) {
+      if (!voucher) return 0;
+      let eligibleSubtotal = 0;
+      selectedItems.forEach(item => {
+        let isEligible = true;
+        if (voucher.apply_scope === 'category') {
+          const allowed = (voucher.scope_value || '').toLowerCase().split(',').map(s => s.trim());
+          const itemCat = (item.category || '').toLowerCase();
+          const itemType = (item.item_type || '').toLowerCase();
+          isEligible = allowed.includes(itemCat) || allowed.includes(itemType);
+        } else if (voucher.apply_scope === 'exclude_outlet') {
+          isEligible = parseInt(item.discount_percent || 0) === 0;
+        }
+        if (isEligible) {
+          eligibleSubtotal += item.price * item.cartQuantity;
+        }
+      });
+      return eligibleSubtotal * 1.10; // Subtotal + 10% tax
+    }
+
+    function calculateDiscount(voucher, source) {
+      let baseAmount = 0;
+      if (Array.isArray(source)) {
+        baseAmount = getEligibleTotal(voucher, source);
+      } else {
+        baseAmount = parseFloat(source) || 0;
+      }
+      if (baseAmount <= 0) return 0;
+
       if (voucher.discount_type === 'fixed') {
         return parseFloat(voucher.discount_value);
       } else {
@@ -466,14 +545,13 @@
 
     function renderVoucherItem(v, isWallet = false) {
       const isShipping = v.category === 'shipping';
-      const isSelected = (selectedVouchers.product?.id === v.id) || (selectedVouchers.shipping?.id === v.id);
+      const isSelected = isWallet ? (tempSelections[v.category] === v.id) : false;
       
       const cart = getCart();
       const selectedItems = cart.filter(item => item.checked);
-      let subtotal = selectedItems.reduce((acc, item) => acc + (item.price * item.cartQuantity), 0);
-      let orderTotal = subtotal * 1.10;
+      let eligibleTotal = isShipping ? selectedItems.reduce((acc, item) => acc + (item.price * item.cartQuantity), 0) * 1.10 : getEligibleTotal(v, selectedItems);
       
-      const isEligible = orderTotal >= parseFloat(v.min_order_value);
+      const isEligible = eligibleTotal >= parseFloat(v.min_order_value);
       
       let badgeColor = isShipping ? 'bg-green-500' : 'bg-nike-orange';
       let title = isShipping ? 'Miễn Phí Vận Chuyển' : 'Giảm Giá Sản Phẩm';
@@ -487,7 +565,7 @@
       if (isWallet) {
         if (isEligible) {
            actionHtml = `
-             <input type="radio" name="voucher_${v.category}" value="${v.id}" class="w-5 h-5 accent-nike-orange cursor-pointer" ${isSelected ? 'checked' : ''} onchange="tempSelectVoucher(${v.id}, '${v.category}')">
+             <input type="radio" name="voucher_${v.category}" value="${v.id}" class="w-5 h-5 accent-nike-orange cursor-pointer" ${isSelected ? 'checked' : ''} onclick="tempSelectVoucher(event, ${v.id}, '${v.category}')">
            `;
         } else {
            actionHtml = `<span class="text-[10px] text-red-500 font-bold whitespace-nowrap">Chưa đủ ĐK</span>`;
@@ -516,7 +594,8 @@
           <!-- Right Content -->
           <div class="flex-1 p-3 flex justify-between items-center gap-2">
             <div>
-              <h5 class="font-bold text-xs text-gray-800">${v.code}</h5>
+              <h5 class="font-bold text-xs text-gray-800">${v.name || v.code}</h5>
+              ${v.description ? `<p class="text-[9px] text-gray-400 mt-0.5 font-light">${v.description}</p>` : ''}
               <p class="text-[10px] text-nike-orange font-bold mt-0.5">${desc}</p>
               <p class="text-[9px] text-gray-500 mt-1">${minOrderText}</p>
             </div>
@@ -530,6 +609,8 @@
 
     let tempSelections = { product: null, shipping: null };
 
+    let expandedVoucherSections = { product: false, shipping: false };
+
     async function openVoucherModal() {
       const userStr = localStorage.getItem('nike_user');
       if(!userStr) return alert("Vui lòng đăng nhập để sử dụng mã giảm giá!");
@@ -537,20 +618,15 @@
       if(cart.filter(item => item.checked).length === 0) return alert("Vui lòng chọn sản phẩm trước khi áp mã!");
 
       tempSelections = { product: selectedVouchers.product?.id || null, shipping: selectedVouchers.shipping?.id || null };
+      expandedVoucherSections = { product: false, shipping: false };
 
       document.getElementById('walletVoucherList').innerHTML = '<div class="text-center text-xs text-gray-400 py-4">Đang tải...</div>';
       
       await loadVouchersData();
 
-      const walletList = document.getElementById('walletVoucherList');
+      renderWalletVouchers();
+
       const availList = document.getElementById('availableVoucherList');
-
-      if (walletVouchers.length === 0) {
-        walletList.innerHTML = '<div class="text-center text-xs text-gray-400 py-4 bg-white rounded-2xl border border-gray-100">Kho voucher trống.</div>';
-      } else {
-        walletList.innerHTML = walletVouchers.map(v => renderVoucherItem(v, true)).join('');
-      }
-
       if (availableVouchers.length === 0) {
         availList.innerHTML = '<div class="text-center text-xs text-gray-400 py-4 bg-white rounded-2xl border border-gray-100">Hiện không có mã mới nào.</div>';
       } else {
@@ -561,6 +637,59 @@
       modal.classList.remove('hidden');
       setTimeout(() => { modal.querySelector('div').classList.remove('scale-95'); }, 10);
     }
+    
+    function renderWalletVouchers() {
+      const walletList = document.getElementById('walletVoucherList');
+      if (walletVouchers.length === 0) {
+        walletList.innerHTML = '<div class="text-center text-xs text-gray-400 py-4 bg-white rounded-2xl border border-gray-100">Kho voucher trống.</div>';
+        return;
+      }
+
+      const pVouchers = walletVouchers.filter(v => v.category === 'product');
+      const sVouchers = walletVouchers.filter(v => v.category === 'shipping');
+
+      // Sort so selected vouchers are at the top
+      pVouchers.sort((a,b) => (a.id === tempSelections.product ? -1 : (b.id === tempSelections.product ? 1 : 0)));
+      sVouchers.sort((a,b) => (a.id === tempSelections.shipping ? -1 : (b.id === tempSelections.shipping ? 1 : 0)));
+
+      let html = '';
+
+      if (pVouchers.length > 0) {
+        const showP = expandedVoucherSections.product ? pVouchers.length : Math.min(3, pVouchers.length);
+        for (let i=0; i<showP; i++) {
+          html += renderVoucherItem(pVouchers[i], true);
+        }
+        if (pVouchers.length > 3) {
+           if (!expandedVoucherSections.product) {
+             html += `<button onclick="toggleVoucherSection('product')" class="w-full py-2 text-[10px] font-bold text-gray-500 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors mt-2 shadow-sm">Xem thêm ${pVouchers.length - 3} mã giảm giá ▾</button>`;
+           } else {
+             html += `<button onclick="toggleVoucherSection('product')" class="w-full py-2 text-[10px] font-bold text-gray-500 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors mt-2 shadow-sm">Thu gọn ▴</button>`;
+           }
+        }
+      }
+
+      if (sVouchers.length > 0) {
+        html += '<h5 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 mt-4 pt-4 border-t border-gray-100">Miễn phí vận chuyển</h5>';
+        const showS = expandedVoucherSections.shipping ? sVouchers.length : Math.min(3, sVouchers.length);
+        for (let i=0; i<showS; i++) {
+          html += renderVoucherItem(sVouchers[i], true);
+        }
+        if (sVouchers.length > 3) {
+           if (!expandedVoucherSections.shipping) {
+             html += `<button onclick="toggleVoucherSection('shipping')" class="w-full py-2 text-[10px] font-bold text-gray-500 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors mt-2 shadow-sm">Xem thêm ${sVouchers.length - 3} mã vận chuyển ▾</button>`;
+           } else {
+             html += `<button onclick="toggleVoucherSection('shipping')" class="w-full py-2 text-[10px] font-bold text-gray-500 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors mt-2 shadow-sm">Thu gọn ▴</button>`;
+           }
+        }
+      }
+
+      walletList.innerHTML = html;
+    }
+
+    function toggleVoucherSection(cat) {
+      expandedVoucherSections[cat] = !expandedVoucherSections[cat];
+      renderWalletVouchers();
+    }
 
     function closeVoucherModal() {
       const modal = document.getElementById('voucherModal');
@@ -568,10 +697,15 @@
       setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
-    function tempSelectVoucher(id, category) {
-      tempSelections[category] = tempSelections[category] === id ? null : id; // Toggle
-      // Re-render just the radio visual states if needed, but browser handles radio. Wait, browser handles radio within name group.
-      // But we need to allow unselecting. If they click already selected, we can clear it.
+    function tempSelectVoucher(event, id, category) {
+      // Prevent double trigger from label click
+      if (tempSelections[category] === id) {
+         tempSelections[category] = null;
+         event.target.checked = false;
+      } else {
+         tempSelections[category] = id;
+      }
+      renderWalletVouchers();
     }
 
     function confirmVoucherSelection() {
@@ -579,6 +713,27 @@
       selectedVouchers.shipping = walletVouchers.find(v => v.id === tempSelections.shipping) || null;
       closeVoucherModal();
       renderCartPage(); // Recalculate and show
+    }
+
+    window.userNcoinBalance = window.userNcoinBalance || 0;
+    function checkNcoinEligibility() {
+      const ncoinOpt = document.getElementById('ncoinPayOption');
+      const ncoinRadio = document.getElementById('ncoin_pay');
+      if (!ncoinOpt || !ncoinRadio) return;
+      
+      const gtText = document.getElementById('summaryGrandTotal').textContent.replace(/[^0-9]/g, '');
+      const grandTotal = parseFloat(gtText) || 0;
+      
+      if (window.userNcoinBalance < grandTotal) {
+        ncoinOpt.classList.add('opacity-50');
+        ncoinOpt.style.pointerEvents = 'none';
+        ncoinRadio.disabled = true;
+        if (ncoinRadio.checked) selectPayment('cod');
+      } else {
+        ncoinOpt.classList.remove('opacity-50');
+        ncoinOpt.style.pointerEvents = 'auto';
+        ncoinRadio.disabled = false;
+      }
     }
 
     function renderSelectedVouchersBadge() {
@@ -634,8 +789,25 @@
     }
 
     function selectPayment(method) {
-      document.getElementById(method === 'vpbank' ? 'vpbank_pay' : 'cod').checked = true;
+      // Uncheck all radios
+      ['cod', 'vpbank_pay', 'vnpay_pay', 'ncoin_pay'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.checked = false;
+      });
+
+      // Check the chosen radio
+      var radioMap = { cod: 'cod', vpbank: 'vpbank_pay', vnpay: 'vnpay_pay', ncoin: 'ncoin_pay' };
+      var radioEl = document.getElementById(radioMap[method]);
+      if (radioEl) radioEl.checked = true;
+
+      // Toggle info boxes
       document.getElementById('vpbankInfoBox').classList.toggle('hidden', method !== 'vpbank');
+      var vnpayBox = document.getElementById('vnpayInfoBox');
+      if (vnpayBox) vnpayBox.classList.toggle('hidden', method !== 'vnpay');
+
+      // Highlight VNPay border when selected
+      var vnpayOpt = document.getElementById('vnpayPayOption');
+      if (vnpayOpt) vnpayOpt.style.borderColor = (method === 'vnpay') ? '#93c5fd' : 'transparent';
     }
 
     let checkoutAddresses = [];
@@ -643,92 +815,159 @@
 
     async function loadCheckoutAddresses(userId) {
       try {
-        const res = await fetch(`/api/auth/users/\${userId}/addresses`);
+        // 1. Thử lấy từ sổ địa chỉ user_addresses
+        const res = await fetch(`/api/auth/users/${userId}/addresses`);
         const data = await res.json();
-        if(data.status === 'success') {
+
+        if (data.status === 'success' && data.data && data.data.length > 0) {
           checkoutAddresses = data.data;
-          if(checkoutAddresses.length > 0) {
-            // Select default address or first one
-            selectedAddress = checkoutAddresses.find(a => a.is_default) || checkoutAddresses[0];
-          }
+          selectedAddress = checkoutAddresses.find(a => a.is_default) || checkoutAddresses[0];
           renderSelectedAddress();
+          return;
         }
-      } catch(e) { console.error('Lỗi tải địa chỉ:', e); }
+
+        // 2. Fallback: Lấy thông tin từ profile (users.fullname / phone / address)
+        const profileRes = await fetch(`/api/auth/profile/${userId}`);
+        const profileData = await profileRes.json();
+
+        if (profileData.status === 'success') {
+          const p = profileData.data;
+          // Chỉ dùng profile nếu có đủ fullname + phone + address
+          if (p.fullname && p.phone && p.address) {
+            const syntheticAddr = {
+              id          : null,
+              fullname    : p.fullname,
+              phone       : p.phone,
+              full_address: [p.address, p.city].filter(Boolean).join(', '),
+              address     : p.address,
+              province    : p.city || '',
+              ward        : '',
+              type        : 'home',
+              is_default  : 1,
+              _fromProfile: true
+            };
+            checkoutAddresses = [syntheticAddr];
+            selectedAddress   = syntheticAddr;
+            renderSelectedAddress();
+            return;
+          }
+        }
+
+        // 3. Không có gì cả
+        checkoutAddresses = [];
+        selectedAddress   = null;
+        renderSelectedAddress();
+
+      } catch(e) {
+        console.error('Lỗi tải địa chỉ:', e);
+        checkoutAddresses = [];
+        selectedAddress   = null;
+        renderSelectedAddress();
+      }
     }
 
     function renderSelectedAddress() {
       const card = document.getElementById('selectedAddressCard');
       if (!selectedAddress) {
         card.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-4 space-y-3">
-            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            <p class="text-sm text-gray-500 font-medium">Bạn chưa có địa chỉ nhận hàng</p>
-            <button type="button" onclick="window.location.href='/profile'" class="bg-nike-black text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-nike-orange transition-colors">Thêm Địa Chỉ Mới</button>
+          <div class="flex flex-col items-center justify-center py-5 space-y-3">
+            <svg class="w-10 h-10 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <div class="text-center">
+              <p class="text-sm text-gray-600 font-semibold">Bạn chưa có địa chỉ nhận hàng</p>
+              <p class="text-xs text-gray-400 mt-1">Vui lòng thêm địa chỉ trong trang hồ sơ của bạn</p>
+            </div>
+            <button type="button" onclick="window.location.href='/profile'"
+              class="bg-nike-orange text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-orange-600 transition-colors shadow-sm flex items-center gap-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Thêm Địa Chỉ Mới
+            </button>
           </div>
         `;
         return;
       }
-      
-      card.innerHTML = `
-        \${selectedAddress.is_default ? '<div class="absolute top-0 right-0 bg-nike-orange text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Mặc định</div>' : ''}
-        <div class="flex items-start gap-3">
-          <div class="mt-1">
-            <svg class="w-5 h-5 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </div>
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <h4 class="font-bold text-gray-900 text-sm">\${selectedAddress.fullname}</h4>
-              <span class="text-gray-300 font-bold">|</span>
-              <span class="text-gray-600 font-semibold text-sm">\${selectedAddress.phone}</span>
-            </div>
-            <p class="text-gray-500 text-xs leading-relaxed max-w-[90%]">\${selectedAddress.full_address}</p>
-            <div class="mt-2">
-              <span class="inline-block border \${selectedAddress.type === 'home' ? 'border-blue-200 text-blue-600 bg-blue-50' : 'border-purple-200 text-purple-600 bg-purple-50'} text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
-                \${selectedAddress.type === 'home' ? 'Nhà Riêng' : 'Văn Phòng'}
-              </span>
-            </div>
-          </div>
-        </div>
-      `;
+
+      const profileBanner = selectedAddress._fromProfile
+        ? `<div class="mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+            <svg class="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p class="text-[10px] text-amber-700 font-medium leading-snug">
+              Đang dùng địa chỉ từ hồ sơ của bạn.
+              <button type="button" onclick="window.location.href='/profile'" class="font-bold underline hover:text-amber-900">Thêm sổ địa chỉ</button>
+              để quản lý nhiều địa chỉ nhận hàng.
+            </p>
+          </div>`
+        : '';
+
+      var defaultBadge = selectedAddress.is_default
+        ? '<div class="absolute top-0 right-0 bg-nike-orange text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Mặc định</div>'
+        : '';
+      var typeClass = selectedAddress.type === 'home'
+        ? 'border-blue-200 text-blue-600 bg-blue-50'
+        : 'border-purple-200 text-purple-600 bg-purple-50';
+      var typeLabel = selectedAddress.type === 'home' ? 'Nhà Riêng' : 'Văn Phòng';
+      var fullAddr  = selectedAddress.full_address || selectedAddress.address || 'Chưa có địa chỉ chi tiết';
+
+      card.innerHTML = profileBanner + defaultBadge
+        + '<div class="flex items-start gap-3">'
+        +   '<div class="mt-1">'
+        +     '<svg class="w-5 h-5 text-nike-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>'
+        +   '</div>'
+        +   '<div class="flex-1">'
+        +     '<div class="flex items-center gap-2 mb-1">'
+        +       '<h4 class="font-bold text-gray-900 text-sm">' + selectedAddress.fullname + '</h4>'
+        +       '<span class="text-gray-300 font-bold">|</span>'
+        +       '<span class="text-gray-600 font-semibold text-sm">' + selectedAddress.phone + '</span>'
+        +     '</div>'
+        +     '<p class="text-gray-500 text-xs leading-relaxed">' + fullAddr + '</p>'
+        +     '<div class="mt-2">'
+        +       '<span class="inline-block border ' + typeClass + ' text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">' + typeLabel + '</span>'
+        +     '</div>'
+        +   '</div>'
+        + '</div>';
     }
 
     function openSelectAddressModal() {
       const modal = document.getElementById('selectAddressModal');
-      const list = document.getElementById('checkoutAddressList');
-      
-      if(checkoutAddresses.length === 0) {
-        list.innerHTML = '<div class="text-center py-10"><p class="text-gray-400 text-sm font-semibold">Bạn chưa có địa chỉ nhận hàng nào.</p></div>';
+      const list  = document.getElementById('checkoutAddressList');
+
+      if (checkoutAddresses.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-10 space-y-3">
+            <p class="text-gray-400 text-sm font-semibold">Bạn chưa có địa chỉ nhận hàng nào.</p>
+            <button onclick="window.location.href='/profile'" class="bg-nike-orange text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-orange-600 transition-colors">
+              Thêm Địa Chỉ Mới
+            </button>
+          </div>`;
       } else {
-        list.innerHTML = checkoutAddresses.map(addr => `
-          <div onclick="chooseAddressForCheckout(\${addr.id})" class="p-4 border \${selectedAddress && selectedAddress.id === addr.id ? 'border-nike-orange bg-orange-50/20' : 'border-gray-100 bg-white'} rounded-2xl cursor-pointer hover:border-nike-orange/50 transition-all relative">
-            \${addr.is_default ? '<div class="absolute top-0 right-0 bg-nike-orange text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Mặc định</div>' : ''}
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <h4 class="font-bold text-gray-900 text-sm">\${addr.fullname}</h4>
-                  <span class="text-gray-300 font-bold">|</span>
-                  <span class="text-gray-600 font-semibold text-sm">\${addr.phone}</span>
-                </div>
-                <p class="text-gray-500 text-xs leading-relaxed max-w-[90%]">\${addr.full_address}</p>
-                <div class="mt-1.5">
-                  <span class="inline-block border \${addr.type === 'home' ? 'border-blue-200 text-blue-600 bg-blue-50' : 'border-purple-200 text-purple-600 bg-purple-50'} text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
-                    \${addr.type === 'home' ? 'Nhà Riêng' : 'Văn Phòng'}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div class="w-5 h-5 rounded-full border-2 \${selectedAddress && selectedAddress.id === addr.id ? 'border-nike-orange bg-nike-orange flex items-center justify-center' : 'border-gray-300'}">
-                  \${selectedAddress && selectedAddress.id === addr.id ? '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-        `).join('');
+        list.innerHTML = checkoutAddresses.map(function(addr) {
+          var isSelected = selectedAddress && selectedAddress.id === addr.id;
+          var borderClass = isSelected ? 'border-nike-orange bg-orange-50/20' : 'border-gray-100 bg-white';
+          var defaultBadge = addr.is_default ? '<div class="absolute top-0 right-0 bg-nike-orange text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Mặc định</div>' : '';
+          var typeLabel = addr.type === 'home' ? 'Nhà Riêng' : 'Văn Phòng';
+          var typeCls = addr.type === 'home' ? 'border-blue-200 text-blue-600 bg-blue-50' : 'border-purple-200 text-purple-600 bg-purple-50';
+          var checkIcon = isSelected ? '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : '';
+          var radioClass = isSelected ? 'border-nike-orange bg-nike-orange flex items-center justify-center' : 'border-gray-300';
+          return '<div onclick="chooseAddressForCheckout(' + addr.id + ')" class="p-4 border ' + borderClass + ' rounded-2xl cursor-pointer hover:border-nike-orange/50 transition-all relative">'
+            + defaultBadge
+            + '<div class="flex items-center justify-between">'
+            +   '<div>'
+            +     '<div class="flex items-center gap-2 mb-1">'
+            +       '<h4 class="font-bold text-gray-900 text-sm">' + addr.fullname + '</h4>'
+            +       '<span class="text-gray-300 font-bold">|</span>'
+            +       '<span class="text-gray-600 font-semibold text-sm">' + addr.phone + '</span>'
+            +     '</div>'
+            +     '<p class="text-gray-500 text-xs leading-relaxed max-w-[90%]">' + (addr.full_address || addr.address || '') + '</p>'
+            +     '<div class="mt-1.5"><span class="inline-block border ' + typeCls + ' text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">' + typeLabel + '</span></div>'
+            +   '</div>'
+            +   '<div><div class="w-5 h-5 rounded-full border-2 ' + radioClass + '">' + checkIcon + '</div></div>'
+            + '</div>'
+            + '</div>';
+        }).join('');
       }
 
       modal.classList.remove('hidden');
-      setTimeout(() => { modal.querySelector('div').classList.remove('scale-95'); }, 10);
+      setTimeout(function() { modal.querySelector('div').classList.remove('scale-95'); }, 10);
     }
+
 
     function closeSelectAddressModal() {
       const modal = document.getElementById('selectAddressModal');
@@ -800,16 +1039,32 @@
       try {
         const response = await fetch('/api/orders/checkout', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
         const result = await response.json();
 
+        // ── VNPay: redirect sang cổng thanh toán ──────────────────────────────
+        if (result.status === 'vnpay_redirect') {
+          // Lưu thông tin giỏ hàng đang chờ thanh toán vào sessionStorage
+          // để sau khi thanh toán xong, trang payment-result có thể dọn sạch cart
+          const pendingItemKeys = selectedItems.map(item => item.id + '_' + item.size + '_' + item.color);
+          sessionStorage.setItem('pendingVnpayOrder', JSON.stringify({
+            orderId : result.order_id,
+            itemIds : pendingItemKeys,
+          }));
+
+          // Redirect sang VNPay
+          const redirectLabel = 'Đang chuyển đến VNPay...';
+          submitBtn.textContent = redirectLabel;
+          window.location.href = result.payUrl;
+          return;
+        }
+
+        // ── COD / VPBank: thành công ──────────────────────────────────────────
         if (result.status === 'success') {
-          // Remove only selected items from shopping cart
+          // Xoá các sản phẩm đã tích khỏi giỏ hàng
           const remainingCart = cart.filter(item => !item.checked);
           saveCart(remainingCart);
 
@@ -831,12 +1086,10 @@
             vpbankSection.classList.add('hidden');
           }
 
-          // Open Success Modal
+          // Mở modal thành công
           const modal = document.getElementById('orderSuccessModal');
           modal.classList.remove('hidden');
-          setTimeout(() => {
-            modal.querySelector('div').classList.remove('scale-95');
-          }, 50);
+          setTimeout(() => { modal.querySelector('div').classList.remove('scale-95'); }, 50);
 
         } else {
           alert('Đặt hàng thất bại: ' + result.message);
@@ -859,6 +1112,16 @@
         try {
           const user = JSON.parse(userStr);
           loadCheckoutAddresses(user.id);
+          fetch(`/api/auth/profile/${user.id}`)
+            .then(res => res.json())
+            .then(data => {
+              if(data.status === 'success' && data.data) {
+                window.userNcoinBalance = parseFloat(data.data.n_coin) || 0;
+                const balDisplay = document.getElementById('ncoinBalanceDisplay');
+                if (balDisplay) balDisplay.textContent = formatPrice(window.userNcoinBalance);
+                checkNcoinEligibility();
+              }
+            });
         } catch (e) { }
       } else {
         // Redirect to login if not logged in
